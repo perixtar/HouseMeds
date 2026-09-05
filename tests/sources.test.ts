@@ -1,0 +1,15 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
+import {healthwarehouse,SourceClient,type Snapshot} from '../src/sources.js';
+const fixture=JSON.parse(await readFile(new URL('./fixtures/healthwarehouse-lisinopril.json',import.meta.url),'utf8'));
+test('captured HealthWarehouse purchase data yields exact independent expected offers',()=>{const result=healthwarehouse(fixture.snapshot);assert.equal(result.listing.source_product_key,fixture.expected.sku);assert.equal(result.listing.sold_as,fixture.expected.sold_as);assert.deepEqual(result.offers.map(x=>x.quantity),fixture.expected.quantities);assert.deepEqual(result.offers.map(x=>x.price_cents),fixture.expected.prices);assert.ok(!result.offers.some(x=>x.quantity==='1'),'unit-price representation is not an accepted fill');});
+test('a displayed default price conflict never publishes',()=>{const s=structuredClone(fixture.snapshot) as Snapshot;s.panel=s.panel.replaceAll('$8.96','$8.95');assert.throws(()=>healthwarehouse(s),/DEFAULT_PRICE_MISMATCH/);});
+test('wrong SKU and non-USD source quotes are rejected',()=>{const s=structuredClone(fixture.snapshot) as Snapshot;s.panel=s.panel.replace('*LISINOPRIL20','OTHER');assert.throws(()=>healthwarehouse(s),/SKU_MISMATCH/);const q=structuredClone(fixture.snapshot);q.product.offers[1].priceCurrency='EUR';assert.throws(()=>healthwarehouse(q),/CURRENCY_MISMATCH/);});
+test('loading and non-HTML responses are not successful discovery',()=>{const c=new SourceClient('costplus');assert.throws(()=>c.fromHtml('','https://www.costplusdrugs.com/'),/EMPTY_OR_NON_HTML/);});
+test('pagination waits for new product links after the range changes',async()=>{
+ const {chromium}=await import('playwright');const browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage();
+ try{await page.setContent(`<title>Local pagination fixture</title><main><p id="range">1-24 of 48</p><a id="product" href="https://www.healthwarehouse.com/old-product">Old product</a><button aria-label="Go to next page" onclick="this.disabled=true;document.querySelector('#range').textContent='25-48 of 48';setTimeout(()=>{document.querySelector('#product').href='https://www.healthwarehouse.com/new-product';document.querySelector('#product').textContent='New product'},150)">Next</button></main>`);
+ const client=new SourceClient('healthwarehouse');Object.assign(client,{page});
+ const previous={url:'https://www.healthwarehouse.com/category',title:'Local pagination fixture',h1:[],links:[],dom_links:['https://www.healthwarehouse.com/old-product'],product:null,panel:'',buttons:[],range:'1-24 of 48',next:true,status:200};
+ const result=await client.next(previous);assert.ok(result.links.includes('https://www.healthwarehouse.com/new-product'));assert.ok(!result.links.includes('https://www.healthwarehouse.com/old-product'));assert.equal(result.next,false);assert.equal(result.range,'25-48 of 48');
+ }finally{await browser.close();}
+});

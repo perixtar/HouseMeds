@@ -1,0 +1,42 @@
+{
+  "observed_at_utc": "2026-09-05T17:41:40.018721+00:00",
+  "requests": [
+    {
+      "url": "https://www.healthwarehouse.com/",
+      "method": "plain HTTP GET (curl defaults)",
+      "status": 403,
+      "headers": {
+        "date": "Sat, 05 Sep 2026 17:36:05 GMT",
+        "content-type": "text/html; charset=UTF-8",
+        "cf-mitigated": "challenge",
+        "server": "cloudflare"
+      },
+      "body_title": "Just a moment...",
+      "interpretation": "Cloudflare challenge; not a product or sitemap response"
+    },
+    {
+      "url": "https://www.healthwarehouse.com/sitemap.xml",
+      "method": "plain HTTP GET (curl defaults)",
+      "status": 403,
+      "headers": {
+        "date": "Sat, 05 Sep 2026 17:36:05 GMT",
+        "content-type": "text/html; charset=UTF-8",
+        "cf-mitigated": "challenge",
+        "server": "cloudflare"
+      },
+      "body_title": "Just a moment...",
+      "interpretation": "Cloudflare challenge; not a product or sitemap response"
+    },
+    {
+      "url": "https://www.healthwarehouse.com/lisinopril-20mg-tablets",
+      "method": "plain HTTP GET (Python urllib defaults)",
+      "status": 403,
+      "headers": {
+        "Content-Type": "text/html; charset=UTF-8",
+        "Cf-Mitigated": "challenge",
+        "Server": "cloudflare"
+      }
+    }
+  ],
+  "browser_xml_attempt": "net::ERR_BLOCKED_BY_CLIENT; XML contents not inspected"
+}

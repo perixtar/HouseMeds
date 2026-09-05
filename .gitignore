@@ -1,0 +1,22 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Dependencies and generated output
+node_modules/
+dist/
+coverage/
+.cache/
+*.log
+
+# Local operating-system files
+.DS_Store
+
+# Local crawl state, evidence, credentials, and acceptance reports
+data/
+.supabase/
+
+# Supabase CLI update cache
+supabase/.temp/

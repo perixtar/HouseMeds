@@ -1,0 +1,33 @@
+{
+  "name": "housemed-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "api": "tsx src/api.ts",
+    "crawl": "tsx src/cli.ts",
+    "pretest": "node scripts/prepare-test-db.mjs",
+    "backup": "node scripts/backup.mjs",
+    "report": "node scripts/report.mjs",
+    "services": "node scripts/mac-services.mjs"
+  },
+  "dependencies": {
+    "cheerio": "1.2.0",
+    "decimal.js": "10.6.0",
+    "fastify": "5.12.3",
+    "pg": "8.23.0",
+    "playwright": "1.63.0",
+    "robots-parser": "3.0.1"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1",
+    "supabase": "2.116.0",
+    "tsx": "4.23.13",
+    "typescript": "7.0.2"
+  }
+}
