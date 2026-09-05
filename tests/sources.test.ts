@@ -29,3 +29,14 @@ test('Cost Plus rejects substituted identities, missing quantities, and API erro
   client.json=async()=>data;await assert.rejects(costplus(client,f.responses[0].response.results[0],f.url,['30']),/QUOTE_IDENTITY_MISMATCH|AMBIGUOUS_OR_MISSING_QUOTE/,kind);
  }
 });
+test('Cost Plus role-button links expose every directory page and wait for its new products',async()=>{
+ const {chromium}=await import('playwright');const browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage();
+ const url='https://www.costplusdrugs.com/medications/categories/diabetes/';
+ try{
+  // Pagination element types and ARIA state were observed through independent browser control.
+  await page.route('https://www.costplusdrugs.com/**',route=>route.fulfill({contentType:'text/html',body:`<title>Local Cost Plus pagination fixture</title><main><h1>Medications</h1><h2>All Medications Under Diabetes</h2><p>Fixture directory content for the rendered pagination regression test.</p><table><tr><td><a id="product" href="https://www.costplusdrugs.com/medications/old-product/">Old product</a></td></tr></table><a id="current" role="button" aria-label="Page 1 is your current page" aria-current="page">1</a><a role="button" aria-label="Next page" aria-disabled="false" onclick="this.setAttribute('aria-disabled','true');document.querySelector('#current').textContent='2';setTimeout(()=>{document.querySelector('#product').href='https://www.costplusdrugs.com/medications/new-product/';document.querySelector('#product').textContent='New product'},150)">Next</a></main>`}));
+  const client=new SourceClient('costplus');Object.assign(client,{browser,page});client.pace=async()=>{};
+  const first=await client.open(url);assert.equal(first.range,'page:1');assert.equal(first.next,true);
+  const last=await client.next(first);assert.equal(last.range,'page:2');assert.equal(last.next,false);assert.ok(last.links.includes('https://www.costplusdrugs.com/medications/new-product/'));assert.ok(!last.links.includes('https://www.costplusdrugs.com/medications/old-product/'));
+ }finally{await browser.close();}
+});

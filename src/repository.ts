@@ -35,7 +35,11 @@ export class Repository {
     const latest=(await db.query('select max(last_checked_at) as time from pricing.offers where listing_id=$1',[old.id])).rows[0].time;
     if(latest&&new Date(latest)>new Date(o.observed_at))return {listingId:old.id,changed:0,ignored:'older_observation'};
     const fields=['source_name','sold_as','content_quantity','content_unit','brand_name'] as const;
-    const conflict=fields.some(k=>old[k]!==null&&o.listing[k]!==null&&String(old[k])!==String(o.listing[k]));
+    let conflict=fields.some(k=>old[k]!==null&&o.listing[k]!==null&&String(old[k])!==String(o.listing[k]));
+    if(old.medication_id!==null&&o.listing.medication){
+     const medication=(await db.query('select name,strength,form,route,release_type from pricing.medications where id=$1',[old.medication_id])).rows[0];
+     conflict ||= (['name','strength','form','route','release_type'] as const).some(k=>medication[k]!==o.listing.medication![k]);
+    }
     if(conflict){await db.query("update pricing.listings set match_status='needs_review',metadata=metadata||$2::jsonb where id=$1",[old.id,JSON.stringify({identity_conflict_evidence:o.evidence_path})]);return {listingId:old.id,changed:0,ignored:'identity_conflict'};}
    }
    let medId=old?.medication_id??null;

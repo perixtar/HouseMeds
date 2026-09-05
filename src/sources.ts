@@ -63,7 +63,7 @@ export class SourceClient {
   if(this.source==='costplus'){
    await this.page.getByRole('button',{name:'Next page',exact:true}).click();
    await this.page.waitForFunction(old=>{
-    const current='page:'+(document.querySelector('button[aria-current="page"]')?.textContent?.trim()??'');
+    const current='page:'+(document.querySelector('main [aria-current="page"]')?.textContent?.trim()??'');
     const links=[...new Set([...document.querySelectorAll('main a[href]')].map(x=>(x as HTMLAnchorElement).href))].sort();
     const products=links.filter(x=>{try{const p=new URL(x).pathname;return /^\/medications\/[^/]+\/?$/.test(p)&&!p.includes('/categories/');}catch{return false;}});
     return current!==old.range&&JSON.stringify(links)!==old.links&&(products.length>0||/no medications|no results/i.test((document.querySelector('main table') as HTMLElement)?.innerText??''));
@@ -91,8 +91,8 @@ export class SourceClient {
    const main=document.querySelector('main') as HTMLElement|null;const text=main?.innerText??'';
    const scripts=[...document.querySelectorAll('script[type="application/ld+json"]')].map(x=>x.textContent??'');
    return {url:location.href,title:document.title,h1:[...document.querySelectorAll('h1')].map(x=>x.textContent??''),links:[...document.querySelectorAll('a[href]')].map(x=>(x as HTMLAnchorElement).href),scripts,
-    dom_links:[...new Set([...document.querySelectorAll('main a[href]')].map(x=>(x as HTMLAnchorElement).href))],panel:text.split(/\nABOUT\s|\nPRODUCT INFORMATION|\nProduct Information/)[0].slice(0,12000),buttons:[...document.querySelectorAll('button')].map(x=>({text:x.textContent?.trim()??'',label:x.getAttribute('aria-label')??'',pressed:x.getAttribute('aria-checked')??x.getAttribute('aria-pressed')})),range:text.match(/\d+\s*[-–]\s*\d+\s+of\s+[\d,]+/)?.[0]??(document.querySelector('button[aria-current="page"]')?'page:'+document.querySelector('button[aria-current="page"]')?.textContent?.trim():null),
-    next:[...document.querySelectorAll('button[aria-label="Go to next page"],button[aria-label="Next page"]')].some(x=>!(x as HTMLButtonElement).disabled&&x.getAttribute('aria-disabled')!=='true')};
+    dom_links:[...new Set([...document.querySelectorAll('main a[href]')].map(x=>(x as HTMLAnchorElement).href))],panel:text.split(/\nABOUT\s|\nPRODUCT INFORMATION|\nProduct Information/)[0].slice(0,12000),buttons:[...document.querySelectorAll('button')].map(x=>({text:x.textContent?.trim()??'',label:x.getAttribute('aria-label')??'',pressed:x.getAttribute('aria-checked')??x.getAttribute('aria-pressed')})),range:text.match(/\d+\s*[-–]\s*\d+\s+of\s+[\d,]+/)?.[0]??(document.querySelector('main [aria-current="page"]')?'page:'+document.querySelector('main [aria-current="page"]')?.textContent?.trim():null),
+    next:[...document.querySelectorAll('button[aria-label="Go to next page"],button[aria-label="Next page"],[role="button"][aria-label="Next page"]')].some(x=>!(x as HTMLButtonElement).disabled&&x.getAttribute('aria-disabled')!=='true')};
   });
   if(/just a moment|access denied|verify you are human/i.test(d.title+' '+d.panel.slice(0,300)))throw new SourceAccessError('SOURCE_CHALLENGE');
   const products=d.scripts.flatMap(s=>{try{return flattenJsonLd(JSON.parse(s)).filter(isProduct);}catch{return [];}});
