@@ -16,7 +16,8 @@
     "report": "node scripts/report.mjs",
     "services": "node scripts/mac-services.mjs",
     "pilot": "tsx src/schedule.ts",
-    "benchmark": "tsx src/benchmark.ts"
+    "benchmark": "tsx src/benchmark.ts",
+    "discovery:tick": "tsx src/discovery-schedule.ts"
   },
   "dependencies": {
     "cheerio": "1.2.0",

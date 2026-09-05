@@ -85,3 +85,39 @@ test('the actual collector CLI persists quantity outcomes and preserves prices o
   assert.deepEqual((await worker.query("select o.* from pricing.offers o join pricing.listings l on l.id=o.listing_id where l.source_product_key='CLI-TEST' order by o.id")).rows,old);
  }finally{await rm(dir,{recursive:true,force:true});}
 });
+
+test('recurring discovery revisits due pages once while initial discovery leaves successful pages intact',async()=>{
+ const sourceId=(await repo.source('costplus')).id;
+ const items=['known','missing','new'].map(x=>({url:'https://www.costplusdrugs.com/recurring-'+x,from:null,reason:null}));await repo.discover(sourceId,items);
+ const rows=(await worker.query("select id,url from pricing.crawl_pages where url like 'https://www.costplusdrugs.com/recurring-%'")).rows;
+ const known=rows.find(x=>x.url.endsWith('known')),missing=rows.find(x=>x.url.endsWith('missing')),fresh=rows.find(x=>x.url.endsWith('new'));
+ await repo.pageResult(known.id,'content','success',true);await repo.pageResult(missing.id,'unknown','not_found',false);
+ await worker.query("update pricing.crawl_pages set next_crawl_at=now()-interval '1 day' where id=any($1::bigint[])",[[known.id,missing.id]]);
+ assert.equal((await repo.nextDiscovery(sourceId,'https://www.costplusdrugs.com',null)).id,fresh.id);
+ await repo.pageResult(fresh.id,'content','success',true);assert.equal(await repo.nextDiscovery(sourceId,'https://www.costplusdrugs.com',null),null);
+ const cutoff=new Date().toISOString();assert.equal(await repo.remainingDiscovery(sourceId,cutoff),2);
+ assert.equal((await repo.nextDiscovery(sourceId,'https://www.costplusdrugs.com',cutoff)).id,known.id);await repo.pageResult(known.id,'content','success',true);
+ assert.equal((await repo.nextDiscovery(sourceId,'https://www.costplusdrugs.com',cutoff)).id,missing.id);await repo.pageResult(missing.id,'unknown','not_found',false);
+ assert.equal(await repo.remainingDiscovery(sourceId,cutoff),0);
+});
+
+test('API collection proceeds independently of a website pause and does not claim a website visit',async()=>{
+ const {mkdtemp,writeFile,rm}=await import('node:fs/promises');const {spawnSync}=await import('node:child_process');const cp=(await repo.source('costplus')).id;
+ const f=JSON.parse(await readFile('tests/fixtures/costplus-lisinopril-api.json','utf8'));await repo.discover(cp,[{url:f.url,from:null,reason:null}]);const page=(await worker.query('select id from pricing.crawl_pages where source_id=$1 and url=$2',[cp,f.url])).rows[0];
+ await worker.query("insert into pricing.crawl_runs(source_id,parser_version,status,started_at,finished_at,checkpoint,summary) values($1,'test','failed',now(),now(),$2,$3)",[cp,JSON.stringify({phase:'discover'}),JSON.stringify({source_paused:true,access_channel:'website',reason:'SOURCE_BLOCKED'})]);
+ const dir=await mkdtemp(resolve('.cache/cp-cli-'));const file=dir+'/manifest.json';await writeFile(file,JSON.stringify({inventory_audit_passed:false,listings:[{source:'costplus',page_id:page.id,url:f.url,planned_quantities:['30','90']}]}));
+ try{const result=spawnSync(process.execPath,['--import','tsx','tests/fixtures/costplus-driver.mjs',file],{encoding:'utf8',timeout:15000,env:{...process.env,DATABASE_URL:`postgresql://housemed_worker@localhost/housemed_test?host=${encodeURIComponent(host)}&port=${port}`,SUPABASE_SECRET_KEY:'',SUPABASE_PROJECT_REF:'test'}});assert.equal(result.status,0,result.stdout+result.stderr);
+  const run=(await worker.query('select * from pricing.crawl_runs where source_id=$1 order by id desc limit 1',[cp])).rows[0];assert.equal(run.summary.access_channel,'api');assert.equal(run.summary.validated_price_quotes,2);assert.equal(run.summary.successful_quantity_checks,2);
+  assert.equal((await worker.query('select last_success_at from pricing.crawl_pages where id=$1',[page.id])).rows[0].last_success_at,null);
+  const website=(await worker.query("select summary from pricing.crawl_runs where source_id=$1 and summary->>'access_channel'='website' order by id desc limit 1",[cp])).rows[0];assert.equal(website.summary.source_paused,true);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+test('estimate opt-in preserves unknown availability and strict default eligibility',async()=>{
+ const o=observation();o.offers[0].availability='unknown';o.offers[0].terms={quote_kind:'estimate',availability_basis:'not_provided_by_api',shipping:null};
+ const saved=await withRun(id=>repo.saveObservation(sourceId,id,o));const med=(await worker.query('select medication_id from pricing.listings where id=$1',[saved.listingId])).rows[0].medication_id;
+ assert.equal((await apiGet(`/v1/medications/${med}/offers`)).json().items.length,0);
+ const estimate=(await apiGet(`/v1/medications/${med}/offers?include_estimates=true&quantity=30&unit=tablet`)).json();assert.equal(estimate.items.length,1);assert.equal(estimate.items[0].availability,'unknown');assert.equal(estimate.items[0].purchase_verification_required,true);assert.equal(estimate.quote_status,'includes_unconfirmed_estimates');assert.ok(!estimate.exclusions.some((x:any)=>x.source==='healthwarehouse'&&x.reason==='unknown'));
+ o.offers[0].valid_until=new Date(Date.now()-1000).toISOString();await withRun(id=>repo.saveObservation(sourceId,id,o));assert.equal((await apiGet(`/v1/medications/${med}/offers?include_estimates=true`)).json().items.length,0);
+ o.offers[0].valid_until=null;o.offers[0].terms={};await withRun(id=>repo.saveObservation(sourceId,id,o));
+ const unexplained=(await apiGet(`/v1/medications/${med}/offers?include_estimates=true`)).json();assert.equal(unexplained.items.length,0);assert.ok(unexplained.exclusions.some((x:any)=>x.source==='healthwarehouse'&&x.reason==='unknown'));
+});

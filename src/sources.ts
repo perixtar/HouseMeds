@@ -138,17 +138,32 @@ export function healthwarehouse(snapshot:Snapshot,review?:Partial<Listing>):{lis
  if(!selected||!total||!offers.some(o=>o.quantity===quantity(selected)&&o.price_cents===cents(total)))throw Error('DEFAULT_PRICE_MISMATCH');
  return {listing,offers};
 }
-export async function costplus(client:SourceClient,snapshot:Snapshot,row:Json,review?:Partial<Listing>):Promise<{listing:Listing;offers:Quote[]}>{
- const product=snapshot.product;if(!product||!product.sku)throw Error('NO_PRODUCT');
- if(new URL(String(row.url)).pathname!==new URL(snapshot.url).pathname)throw Error('CATALOG_URL_MISMATCH');
- const title=String(product.name);if(!title.toLowerCase().includes(String(row.medication_name).toLowerCase())||!title.replace(/\s/g,'').toLowerCase().includes(String(row.strength).replace(/\s/g,'').toLowerCase()))throw Error('CATALOG_PRODUCT_IDENTITY_MISMATCH');
+export async function costplus(client:SourceClient,row:Json,url:string,quantities:string[],review?:Partial<Listing>,sourceProductKey?:string,onResponse?:(record:Json)=>void):Promise<{listing:Listing;offers:Quote[]}>{
+ const normalized=normalizeUrl(String(row.url),sources.costplus.origin,'costplus');
+ if(!normalized||normalized.reason||normalized.url!==url)throw Error('CATALOG_URL_MISMATCH');
+ if(!/^[0-9]{10,11}$/.test(String(row.ndc))||!row.medication_name||!row.strength||!row.form||!['Generic','Brand'].includes(String(row.brand_generic)))throw Error('INVALID_CATALOG_IDENTITY');
+ const qs=quantities.map(quantity);if(!qs.length||new Set(qs).size!==qs.length)throw Error('EXPLICIT_UNIQUE_QUANTITIES_REQUIRED');
  const isLoose=row.pill_nonpill==='Pill'&&['Tablet','Capsule'].includes(String(row.form));
- const listing:Listing=applyReview({source_product_key:String(product.sku),source_name:title,url:snapshot.url,brand_name:row.brand_generic==='Brand'?String(row.brand_name):null,sold_as:isLoose?String(row.form).toLowerCase():'package',content_quantity:isLoose?'1':null,content_unit:isLoose?String(row.form).toLowerCase():null,metadata:{ndc:String(row.ndc),catalog_name:row.medication_name,catalog_strength:row.strength,catalog_form:row.form,brand_generic:row.brand_generic,medispan_pack_size:row.medispan_pack_size,medispan_pack_size_units:row.medispan_pack_size_units,medispan_quantity:row.medispan_quantity}},review);
- const qs=snapshot.buttons.map(x=>x.label.match(/^Select Quantity:\s*([\d.]+)/)?.[1]).filter((x):x is string=>Boolean(x));if(!qs.length)throw Error('NO_VISIBLE_QUANTITIES');
- const baseOffer=(Array.isArray(product.offers)?product.offers[0]:product.offers) as Json;
+ const title=[row.medication_name,row.strength,row.form].join(' ');
+ const listing:Listing=applyReview({source_product_key:sourceProductKey??'url:'+new URL(url).pathname,source_name:title,url,
+  brand_name:row.brand_generic==='Brand'?String(row.brand_name):null,sold_as:isLoose?String(row.form).toLowerCase():'unresolved_api_unit',
+  content_quantity:isLoose?'1':null,content_unit:isLoose?String(row.form).toLowerCase():null,
+  metadata:{ndc:String(row.ndc),catalog_name:row.medication_name,catalog_strength:row.strength,catalog_form:row.form,brand_generic:row.brand_generic,
+   medispan_pack_size:row.medispan_pack_size,medispan_pack_size_units:row.medispan_pack_size_units,medispan_quantity:row.medispan_quantity,
+   collection_method:'documented_public_api',catalog_listed:true}},review);
  const offers:Quote[]=[];
- for(const q of [...new Set(qs)]){const url=new URL(CP_API);url.searchParams.set('ndc',String(row.ndc));url.searchParams.set('quantity_units',q);const result=await client.json(url.href);const candidates=(result.results as Json[]??[]).filter(x=>String(x.ndc)===String(row.ndc)&&String(x.requested_quote_units)===q);if(candidates.length!==1||!candidates[0].requested_quote)throw Error('AMBIGUOUS_OR_MISSING_QUOTE');offers.push({quantity:quantity(q),price_cents:cents(candidates[0].requested_quote),currency:'USD',availability:stock(baseOffer.availability),seller_key:'costplus',location_key:'online-us',program_key:'cash',terms:{quote_kind:'estimate',shipping:null,taxes:null,source_ndc:String(row.ndc)},valid_until:null,active:true});}
- // The page's structured default total must agree with at least one of its displayed quantity choices.
- if(baseOffer.price===undefined||!offers.some(o=>o.price_cents===cents(baseOffer.price)))throw Error('PAGE_API_PRICE_MISMATCH');
+ const identityFields=['medication_name','strength','form','brand_generic','brand_name','pill_nonpill','medispan_pack_size','medispan_pack_size_units','medispan_quantity'];
+ for(const q of qs){
+  const request=new URL(CP_API);request.searchParams.set('ndc',String(row.ndc));request.searchParams.set('quantity_units',q);
+  const result=await client.json(request.href);
+  onResponse?.({request_url:request.href,received_at:new Date().toISOString(),response:result});
+  if(!Array.isArray(result.results))throw Error('INVALID_QUOTE_RESPONSE');
+  const candidates=(result.results as Json[]).filter(x=>String(x.ndc)===String(row.ndc)&&String(x.requested_quote_units)===q);
+  if(candidates.length!==1||candidates[0].error_message||candidates[0].requested_quote===undefined)throw Error('AMBIGUOUS_OR_MISSING_QUOTE');
+  const returned=candidates[0];
+  if(normalizeUrl(String(returned.url),sources.costplus.origin,'costplus')?.url!==url||identityFields.some(field=>String(row[field]??'')!==String(returned[field]??'')))throw Error('QUOTE_IDENTITY_MISMATCH');
+  offers.push({quantity:q,price_cents:cents(returned.requested_quote),currency:'USD',availability:'unknown',seller_key:'costplus',location_key:'online-us',program_key:'cash',
+   terms:{quote_kind:'estimate',shipping:null,taxes:null,source_ndc:String(row.ndc),availability_basis:'not_provided_by_api',catalog_listed:true},valid_until:null,active:true});
+ }
  return {listing,offers};
 }

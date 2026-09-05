@@ -48,7 +48,7 @@ try{
    if(!window?.open)await save('data/reports/pilot-last-tick.json',{at:new Date().toISOString(),status:window?'window_closed':'waiting_for_first_window',window});
    else {
     const runSource=async(source:'healthwarehouse'|'costplus')=>{
-     const latest=(await pool.query(`select r.* from pricing.crawl_runs r join pricing.sources s on s.id=r.source_id where s.slug=$1 order by started_at desc,r.id desc limit 1`,[source])).rows[0];
+     const latest=(await pool.query(`select r.* from pricing.crawl_runs r join pricing.sources s on s.id=r.source_id where s.slug=$1 and coalesce(r.summary->>'access_channel','website')=$2 order by started_at desc,r.id desc limit 1`,[source,source==='costplus'?'api':'website'])).rows[0];
      if(latest?.summary?.source_paused)return {source,status:'paused',reason:latest.summary.reason};
      const attempts=(await pool.query(`select r.id,r.checkpoint from pricing.crawl_runs r join pricing.sources s on s.id=r.source_id
       where s.slug=$1 and r.summary->>'scope'='scheduled' and r.summary->>'window_start'=$2 and r.summary->>'manifest_hash'=$3 order by r.started_at desc,r.id desc`,[source,window.start,expectedHash])).rows;

@@ -8,7 +8,7 @@ export interface PilotManifest {
  listings:PilotListing[];
 }
 export interface CollectionResult {
- successful:boolean;attempted_at:string;successful_quantities:string[];reason?:string;
+ successful:boolean;attempted_at:string;successful_quantities:string[];validated_price_quantities?:string[];reason?:string;
 }
 export const DAY_MS=86400000,WINDOW_MS=7200000;
 export function validateManifest(value:unknown,accessTest=false,scheduled=false):PilotManifest {
@@ -32,19 +32,20 @@ export function validateManifest(value:unknown,accessTest=false,scheduled=false)
 }
 export function manifestHash(manifest:PilotManifest){return hash(stable(manifest));}
 export function resultForOffers(planned:PilotListing,offers:Quote[],now=new Date()):CollectionResult {
- const available=new Set(offers.filter(x=>x.active&&(x.availability==='out_of_stock'||(x.availability==='in_stock'&&x.price_cents!==null))).map(x=>x.quantity));
+ const available=new Set(offers.filter(x=>x.active&&(x.availability==='out_of_stock'||(x.price_cents!==null&&(x.availability==='in_stock'||(x.availability==='unknown'&&x.terms.quote_kind==='estimate'&&x.terms.availability_basis==='not_provided_by_api'))))).map(x=>x.quantity));
  const expected=planned.planned_quantities??offers.map(x=>x.quantity);
  const successful_quantities=expected.filter(q=>available.has(q));
- return {successful:successful_quantities.length===expected.length,attempted_at:now.toISOString(),successful_quantities,...(successful_quantities.length!==expected.length?{reason:'PLANNED_QUANTITIES_MISSING_OR_UNKNOWN'}:{})};
+ const priced=new Set(offers.filter(x=>x.active&&x.price_cents!==null).map(x=>x.quantity));const validated_price_quantities=expected.filter(q=>priced.has(q));
+ return {successful:successful_quantities.length===expected.length,attempted_at:now.toISOString(),successful_quantities,validated_price_quantities,...(successful_quantities.length!==expected.length?{reason:validated_price_quantities.length===expected.length?'AVAILABILITY_UNCONFIRMED':'PLANNED_QUANTITIES_MISSING_OR_UNKNOWN'}:{})};
 }
 export function collectionMetrics(items:PilotListing[],results:Record<string,CollectionResult>){
  const plannedQuantities=items.every(x=>x.planned_quantities?.length)?items.reduce((n,x)=>n+x.planned_quantities!.length,0):null;
- let attempted=0,successful=0,successfulQuantities=0;
+ let attempted=0,successful=0,successfulQuantities=0,validatedPrices=0;
  for(const item of items){const r=results[item.page_id];if(!r)continue;attempted++;if(r.successful)successful++;
-  if(item.planned_quantities)successfulQuantities+=new Set(r.successful_quantities.filter(q=>item.planned_quantities!.includes(q))).size;
+  if(item.planned_quantities){successfulQuantities+=new Set(r.successful_quantities.filter(q=>item.planned_quantities!.includes(q))).size;validatedPrices+=new Set((r.validated_price_quantities??[]).filter(q=>item.planned_quantities!.includes(q))).size;}
  }
  return {planned_listings:items.length,attempted_listings:attempted,successful_listings:successful,failed_listings:attempted-successful,unattempted_listings:items.length-attempted,
-  planned_quantity_checks:plannedQuantities,successful_quantity_checks:plannedQuantities===null?null:successfulQuantities,
+  validated_price_quotes:plannedQuantities===null?null:validatedPrices,planned_quantity_checks:plannedQuantities,successful_quantity_checks:plannedQuantities===null?null:successfulQuantities,
   listing_success_rate:items.length?successful/items.length:0,quantity_success_rate:plannedQuantities?successfulQuantities/plannedQuantities:null};
 }
 export function dailyWindow(first:string,now:Date){
@@ -76,4 +77,8 @@ export function reliabilityReport(manifest:PilotManifest,firstWindow:string,runs
  }
  return {as_of:now.toISOString(),manifest_hash:expectedHash,first_window_at:firstWindow,consecutive_passing_windows:consecutive,best_passing_streak:best,
   seven_day_collection_passed:best>=7,windows,scope:'Collection reliability only; other MVP acceptance gates remain separate.'};
+}
+
+export function priceWindowTakesPriority(config:{enabled:boolean;first_window_at:string}|null,now=new Date()){
+ return Boolean(config?.enabled&&dailyWindow(config.first_window_at,now)?.open);
 }

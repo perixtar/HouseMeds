@@ -1,11 +1,12 @@
 import {readFile} from 'node:fs/promises';
-import {validateManifest,manifestHash,resultForOffers,collectionMetrics,WINDOW_MS,type CollectionResult} from './pilot.js';
+import {validateManifest,manifestHash,resultForOffers,collectionMetrics,WINDOW_MS,priceWindowTakesPriority,type CollectionResult} from './pilot.js';
 import {makePool} from './db.js';import {Repository} from './repository.js';import {EvidenceStore} from './evidence.js';
 import {SourceClient,SourceAccessError,healthwarehouse,costplus,type Snapshot} from './sources.js';
 import {sources,CP_API,normalizeUrl,hash,stable,type SourceSlug,type Json,type Listing} from './core.js';
 const [command,slug,...args]=process.argv.slice(2);
 if(!['discover','collect','status'].includes(command)||!['healthwarehouse','costplus'].includes(slug))throw Error('Usage: npm run crawl -- discover|collect|status healthwarehouse|costplus [--max-pages N] [--minutes N] [--manifest path]');
 const source=slug as SourceSlug;
+const accessChannel=source==='costplus'&&command==='collect'?'api':'website';
 function option(name:string,fallback:string){const i=args.indexOf(name);return i<0?fallback:args[i+1]??fallback;}
 const scheduled=args.includes('--scheduled');
 if(scheduled&&(process.env.HOUSEMED_SCHEDULED_RUN!=='1'||command!=='collect'||args.includes('--access-test')))throw Error('SCHEDULED_RUN_REQUIRES_SCHEDULER');
@@ -33,7 +34,12 @@ if(!locked){lock.release();await pool.end();throw Error('SOURCE_ALREADY_RUNNING'
 process.once('SIGINT',()=>{stopping=true;});process.once('SIGTERM',()=>{stopping=true;});
 let catalog:Json[]=[];const cohortSize=pilot.length;
 let collectionResults:Record<string,CollectionResult>={};
-function summaryDetails(){return {phase:command,scope,window_start:windowStart,manifest_hash:fileHash,operator_intervention:args.includes('--resume-blocked'),lock_connection_lost:lockLost,
+let discoveryCutoff:string|null=null,yieldedForPrices=false;
+function discoveryBase(){return {phase:command,discovery_cutoff:discoveryCutoff};}
+async function shouldYieldDiscovery(){
+ try{const config=JSON.parse(await readFile('data/pilot/config.json','utf8'));if(priceWindowTakesPriority(config)){yieldedForPrices=true;stopping=true;return true;}}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e;}return false;
+}
+function summaryDetails(){return {phase:command,scope,access_channel:accessChannel,discovery_cutoff:discoveryCutoff,yielded_for_price_window:yieldedForPrices,window_start:windowStart,manifest_hash:fileHash,operator_intervention:args.includes('--resume-blocked'),lock_connection_lost:lockLost,
  ...(manifest?collectionMetrics(pilot,collectionResults):{}),processed,replayed,failures,elapsed_ms:Date.now()-start};}
 async function persistCollection(){
  checkpoint={...checkpoint,phase:command,manifest_hash:fileHash,collection_results:collectionResults};
@@ -46,20 +52,24 @@ async function remember(snapshot:Snapshot,pageId:string,state:number){
  const ref=await evidence.put(source,runId!,`${pageId}:${state}`,{page_id:pageId,state,observed_at:new Date().toISOString(),url:snapshot.url,title:snapshot.title,h1:snapshot.h1,links:discovered,range:snapshot.range,has_next:snapshot.next,product:snapshot.product,buttons:snapshot.product?snapshot.buttons.filter(x=>/^Select (?:quantity|Quantity|Strength|Form)/.test(x.label)):[]});
  checkpoint={...checkpoint,phase:command,current_page_id:pageId,current_url:snapshot.url,state_index:state,fingerprint:hash(stable([snapshot.range,snapshot.links])),last_evidence:ref};
  await pool.query('update pricing.crawl_runs set checkpoint=$2,evidence_path=$3 where id=$1',[runId,JSON.stringify(checkpoint),ref]);
+ await pool.query('update pricing.crawl_runs set summary=$2 where id=$1',[runId,JSON.stringify(summaryDetails())]);
  return kind;
 }
 async function begin(){
- const latest=(await pool.query('select * from pricing.crawl_runs where source_id=$1 order by started_at desc,id desc limit 1',[sourceRow.id])).rows[0];
+ const latest=(await pool.query("select * from pricing.crawl_runs where source_id=$1 and coalesce(summary->>'access_channel','website')=$2 order by started_at desc,id desc limit 1",[sourceRow.id,accessChannel])).rows[0];
  if(latest?.summary?.source_paused&&!args.includes('--resume-blocked'))throw Error('SOURCE_PAUSED_REQUIRES_REVIEW');
- if(latest?.status==='running'){await pool.query("update pricing.crawl_runs set status='interrupted',finished_at=now() where id=$1",[latest.id]);}
+ await pool.query("update pricing.crawl_runs set status='interrupted',finished_at=now() where source_id=$1 and status='running'",[sourceRow.id]);
  const phaseLast=(await pool.query("select * from pricing.crawl_runs where source_id=$1 and checkpoint->>'phase'=$2 order by started_at desc,id desc limit 1",[sourceRow.id,command])).rows[0];
- const sameScope=command==='discover'||(phaseLast?.summary?.scope===scope&&(!scheduled||phaseLast.summary.window_start===windowStart));
- const previous=!args.includes('--fresh')&&sameScope&&phaseLast&&['partial','interrupted'].includes(phaseLast.status)?phaseLast:null;
+ const sameScope=command==='discover'?(Boolean(phaseLast?.checkpoint?.discovery_cutoff)===args.includes('--refresh-due')):(phaseLast?.summary?.scope===scope&&(!scheduled||phaseLast.summary.window_start===windowStart));
+ const previous=!args.includes('--fresh')&&sameScope&&phaseLast&&['partial','interrupted','failed'].includes(phaseLast.status)?phaseLast:null;
  checkpoint=previous?.checkpoint??{phase:command};
+ discoveryCutoff=command==='discover'&&args.includes('--refresh-due')?String(checkpoint.discovery_cutoff??new Date().toISOString()):null;
+ if(command==='discover')checkpoint={...checkpoint,discovery_cutoff:discoveryCutoff};
  if(manifest&&checkpoint.manifest_hash&&checkpoint.manifest_hash!==fileHash)throw Error('MANIFEST_CHANGED_DURING_RESUME');
  collectionResults=(checkpoint.collection_results??{}) as Record<string,CollectionResult>;
  runId=(await pool.query("insert into pricing.crawl_runs(source_id,parser_version,checkpoint,summary) values($1,'0.1.0',$2,$3) returning id",[sourceRow.id,JSON.stringify(checkpoint),JSON.stringify(summaryDetails())])).rows[0].id;
- await client.init();
+ if(command==='discover'&&await shouldYieldDiscovery())return;
+ if(accessChannel==='website')await client.init();
  if(source==='costplus'){
   const result=await client.json(CP_API);if(!Array.isArray(result.results)||!result.results.length)throw Error('EMPTY_OR_INVALID_CATALOG');catalog=result.results as Json[];
   await evidence.put(source,runId!,'catalog',{observed_at:new Date().toISOString(),results:catalog});
@@ -71,17 +81,16 @@ async function begin(){
 }
 async function discover(){
  while(!stopping&&Date.now()<deadline&&processed+replayed<maxPages){
+  if(await shouldYieldDiscovery())break;
   let row=checkpoint.current_page_id?(await pool.query('select * from pricing.crawl_pages where id=$1 and source_id=$2',[checkpoint.current_page_id,sourceRow.id])).rows[0]:null;
-  if(!row)row=(await pool.query(`select * from pricing.crawl_pages where source_id=$1 and page_type<>'ignored' and last_success_at is null and last_result is distinct from 'not_found' and next_crawl_at<=now()
-   order by case when url=$2 or url=$2||'sitemap' or url=$2||'medications/' then 0 when page_type='product' then 3 else 1 end,
-   first_seen_at,id limit 1`,[sourceRow.id,sources[source].origin+'/'])).rows[0];
+  if(!row)row=await repo.nextDiscovery(sourceRow.id,sources[source].origin,discoveryCutoff);
   if(!row)break;
-  if(!client.allowed(row.url)){await pool.query("update pricing.crawl_pages set page_type='ignored',last_result=null,next_crawl_at=null where id=$1",[row.id]);checkpoint={phase:command};continue;}
+  if(!client.allowed(row.url)){await pool.query("update pricing.crawl_pages set page_type='ignored',last_result=null,next_crawl_at=null where id=$1",[row.id]);checkpoint=discoveryBase();continue;}
   try{
    let snap=await client.open(row.url,row.discovered_from??undefined),state=0;
    const resume=checkpoint.current_page_id===row.id?Number(checkpoint.state_index??-1):-1;
    while(state<=resume&&snap.next){
-    if(stopping||Date.now()>=deadline||processed+replayed>=maxPages)return;
+    if(stopping||Date.now()>=deadline||processed+replayed>=maxPages||await shouldYieldDiscovery())return;
     // A category may change during a pause. Preserve newly seen links while replaying.
     await remember(snap,row.id,state);replayed++;snap=await client.next(snap);state++;
    }
@@ -91,12 +100,12 @@ async function discover(){
     kind=await remember(snap,row.id,state);processed++;
     console.log(JSON.stringify({event:'discovered',source,run_id:runId,page_id:row.id,url:row.url,kind,state,links:snap.links.length,processed}));
     if(!snap.next){categoryComplete=true;break;}
-    if(Date.now()>=deadline||processed+replayed>=maxPages||stopping)break;
+    if(Date.now()>=deadline||processed+replayed>=maxPages||stopping||await shouldYieldDiscovery())break;
     snap=await client.next(snap);state++;
    }
-   if(categoryComplete){await repo.pageResult(row.id,kind,'success',true);checkpoint={phase:command};await pool.query('update pricing.crawl_runs set checkpoint=$2 where id=$1',[runId,JSON.stringify(checkpoint)]);}
+   if(categoryComplete){await repo.pageResult(row.id,kind,'success',true);checkpoint=discoveryBase();await pool.query('update pricing.crawl_runs set checkpoint=$2 where id=$1',[runId,JSON.stringify(checkpoint)]);}
    else break;
-  }catch(e){failures++;const code=e instanceof Error?e.message:'UNKNOWN_FAILURE';const blocked=/SOURCE_BLOCKED|SOURCE_CHALLENGE|SOURCE_RATE_LIMITED/.test(code);await repo.pageResult(row.id,row.page_type,blocked?'blocked':code==='HTTP_404'?'not_found':'failed',false);await evidence.put(source,runId!,row.url+':failure',{url:row.url,code,observed_at:new Date().toISOString()});checkpoint={phase:command};await pool.query('update pricing.crawl_runs set checkpoint=$2 where id=$1',[runId,JSON.stringify(checkpoint)]);console.log(JSON.stringify({event:'page_failed',source,url:row.url,code}));if(blocked)throw e;}
+  }catch(e){failures++;const code=e instanceof Error?e.message:'UNKNOWN_FAILURE';const blocked=/SOURCE_BLOCKED|SOURCE_CHALLENGE|SOURCE_RATE_LIMITED/.test(code);await repo.pageResult(row.id,row.page_type,blocked?'blocked':code==='HTTP_404'?'not_found':'failed',false);await evidence.put(source,runId!,row.url+':failure',{url:row.url,code,observed_at:new Date().toISOString()});checkpoint=discoveryBase();await pool.query('update pricing.crawl_runs set checkpoint=$2 where id=$1',[runId,JSON.stringify(checkpoint)]);console.log(JSON.stringify({event:'page_failed',source,url:row.url,code}));if(blocked)throw e;}
  }
 }
 async function collect(){
@@ -105,23 +114,26 @@ async function collect(){
   const selected=pilot[i];
   const page=(await pool.query("select * from pricing.crawl_pages where id=$1 and source_id=$2 and page_type<>'ignored'",[selected.page_id,sourceRow.id])).rows[0];
   if(!page||page.url!==selected.url)throw Error('MANIFEST_INVENTORY_MISMATCH');
-  try{const snap=await client.open(page.url,page.discovered_from??undefined);let parsed:{listing:Listing;offers:import('./core.js').Quote[]};
-   if(source==='healthwarehouse')parsed=healthwarehouse(snap,selected.review);
-   else {const candidates=catalog.filter(x=>normalizeUrl(String(x.url),sources[source].origin,source)?.url===page.url);if(candidates.length!==1)throw Error('AMBIGUOUS_CATALOG_PRODUCT');parsed=await costplus(client,snap,candidates[0],selected.review);}
+  let snap:Snapshot|null=null;const apiQuotes:Json[]=[];
+  try{snap=source==='healthwarehouse'?await client.open(page.url,page.discovered_from??undefined):null;let parsed:{listing:Listing;offers:import('./core.js').Quote[]};
+   if(source==='healthwarehouse')parsed=healthwarehouse(snap!,selected.review);
+   else {const candidates=catalog.filter(x=>normalizeUrl(String(x.url),sources[source].origin,source)?.url===page.url);if(candidates.length!==1)throw Error('AMBIGUOUS_CATALOG_PRODUCT');const existing=page.listing_id?(await pool.query('select source_product_key from pricing.listings where id=$1 and source_id=$2',[page.listing_id,sourceRow.id])).rows[0]:null;
+    parsed=await costplus(client,candidates[0],page.url,selected.planned_quantities??[],selected.review,existing?.source_product_key,record=>apiQuotes.push(record));}
    if(selected.source_product_key&&parsed.listing.source_product_key!==selected.source_product_key)throw Error('FROZEN_PRODUCT_IDENTITY_MISMATCH');
-   const observed_at=new Date().toISOString();const ref=await evidence.put(source,runId!,page.url,{snapshot:snap,parsed,observed_at});
-   const result=await repo.saveObservation(sourceRow.id,runId!,{...parsed,observed_at,evidence_path:ref,complete:true});
+   const observed_at=new Date().toISOString();const ref=await evidence.put(source,runId!,page.url,{snapshot:snap,api_quotes:apiQuotes,parsed,observed_at});
+   if(snap){const captured=snap;await repo.discover(sourceRow.id,captured.links.map(h=>normalizeUrl(h,captured.url,source)).filter((x):x is {url:string;reason:string|null}=>Boolean(x)).map(x=>({...x,from:captured.url})));}
+   const result=await repo.saveObservation(sourceRow.id,runId!,{...parsed,observed_at,evidence_path:ref,complete:source==='healthwarehouse'});
    if(result.ignored)throw Error(result.ignored);
    collectionResults[selected.page_id]=resultForOffers(selected,parsed.offers);
    if(!collectionResults[selected.page_id].successful)failures++;
-   await repo.pageResult(page.id,'product','success',true);console.log(JSON.stringify({event:'collected',source,url:page.url,offers:parsed.offers.length,...result}));
-  }catch(e){failures++;const code=e instanceof Error?e.message:'UNKNOWN_FAILURE';collectionResults[selected.page_id]={successful:false,successful_quantities:[],attempted_at:new Date().toISOString(),reason:code};await persistCollection();await repo.pageResult(page.id,'product',/SOURCE_BLOCKED|SOURCE_CHALLENGE|SOURCE_RATE_LIMITED/.test(code)?'blocked':code==='HTTP_404'?'not_found':'failed',false);await evidence.put(source,runId!,page.url+':failure',{url:page.url,code,observed_at:new Date().toISOString()});console.log(JSON.stringify({event:'collection_failed',source,url:page.url,code}));if(/SOURCE_BLOCKED|SOURCE_CHALLENGE|SOURCE_RATE_LIMITED/.test(code))throw e;}
+   if(snap)await repo.pageResult(page.id,'product','success',true);console.log(JSON.stringify({event:'collected',source,url:page.url,offers:parsed.offers.length,...result}));
+  }catch(e){failures++;const code=e instanceof Error?e.message:'UNKNOWN_FAILURE';collectionResults[selected.page_id]={successful:false,successful_quantities:[],attempted_at:new Date().toISOString(),reason:code};await persistCollection();if(accessChannel==='website')await repo.pageResult(page.id,'product',/SOURCE_BLOCKED|SOURCE_CHALLENGE|SOURCE_RATE_LIMITED/.test(code)?'blocked':code==='HTTP_404'?'not_found':'failed',false);await evidence.put(source,runId!,page.url+':failure',{url:page.url,code,snapshot:snap,api_quotes:apiQuotes,observed_at:new Date().toISOString()});console.log(JSON.stringify({event:'collection_failed',source,url:page.url,code}));if(/SOURCE_BLOCKED|SOURCE_CHALLENGE|SOURCE_RATE_LIMITED/.test(code))throw e;}
   processed++;checkpoint={...checkpoint,manifest_index:i+1};await persistCollection();
  }
 }
 try{
  await begin();if(command==='discover')await discover();else await collect();
- const remaining=command==='discover'?(await pool.query("select count(*)::int n from pricing.crawl_pages where source_id=$1 and page_type<>'ignored' and last_success_at is null and last_result is distinct from 'not_found'",[sourceRow.id])).rows[0].n:Math.max(0,cohortSize-Number(checkpoint.manifest_index??0));
+ const remaining=command==='discover'?await repo.remainingDiscovery(sourceRow.id,discoveryCutoff):Math.max(0,cohortSize-Number(checkpoint.manifest_index??0));
  const incomplete=command==='discover'?remaining>0:Number(checkpoint.manifest_index??0)<cohortSize;
  const priorFailures=manifest?Object.values(collectionResults).some(x=>!x.successful):false;
  const status=stopping?'interrupted':failures||priorFailures||incomplete||Date.now()>deadline?'partial':'succeeded';

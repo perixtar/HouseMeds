@@ -49,3 +49,19 @@ test('a late retry cannot hide behind an earlier passing result',()=>{
  const m=manifest(),r=runs(m,1);r.push({...r[0],id:'3',finished_at:new Date(anchor+WINDOW_MS+1).toISOString()});
  assert.equal(reliabilityReport(m,first,r,new Date(anchor+WINDOW_MS+2)).windows[0].status,'failed');
 });
+
+test('discovery yields only to an enabled, currently open price window',async()=>{
+ const {priceWindowTakesPriority}=await import('../src/pilot.js');const config={enabled:true,first_window_at:first};
+ assert.equal(priceWindowTakesPriority(config,new Date(anchor-1)),false);assert.equal(priceWindowTakesPriority(config,new Date(anchor+1000)),true);
+ assert.equal(priceWindowTakesPriority(config,new Date(anchor+WINDOW_MS)),false);assert.equal(priceWindowTakesPriority({...config,enabled:false},new Date(anchor+1000)),false);
+});
+test('valid API estimates are tracked separately from stock-confirmed checks',()=>{
+ const item=manifest().listings[0];item.planned_quantities=['30'];
+ const r=resultForOffers(item,[{quantity:'30',price_cents:'555',currency:'USD',availability:'unknown',seller_key:'costplus',location_key:'online-us',program_key:'cash',terms:{quote_kind:'estimate'},valid_until:null,active:true}]);
+ const metrics=collectionMetrics([item],{[item.page_id]:r});assert.equal(metrics.validated_price_quotes,1);assert.equal(metrics.successful_quantity_checks,0);assert.equal(r.reason,'AVAILABILITY_UNCONFIRMED');
+});
+test('a documented API estimate is a valid collection check without asserting stock',()=>{
+ const item=manifest().listings[0];item.planned_quantities=['30'];
+ const r=resultForOffers(item,[{quantity:'30',price_cents:'555',currency:'USD',availability:'unknown',seller_key:'costplus',location_key:'online-us',program_key:'cash',terms:{quote_kind:'estimate',availability_basis:'not_provided_by_api'},valid_until:null,active:true}]);
+ assert.equal(r.successful,true);assert.deepEqual(r.successful_quantities,['30']);
+});

@@ -1,0 +1,79 @@
+{
+  "captured_at": "2026-09-05T22:12:29.296Z",
+  "url": "https://www.costplusdrugs.com/medications/lisinopril-20mg-tablet/",
+  "responses": [
+    {
+      "received_at": "2026-09-05T22:12:24.280Z",
+      "request_url": "https://us-central1-costplusdrugs-publicapi.cloudfunctions.net/main?ndc=68180098103&quantity_units=30",
+      "response": {
+        "results": [
+          {
+            "auto_refill": true,
+            "brand_generic": "Generic",
+            "brand_name": "Prinivil",
+            "form": "Tablet",
+            "insurance_eligible": "Yes",
+            "medication_name": "Lisinopril",
+            "medispan_pack_size": "1000",
+            "medispan_pack_size_units": "ea",
+            "medispan_quantity": "1",
+            "ndc": "68180098103",
+            "pill_nonpill": "Pill",
+            "requested_quote": "$5.55",
+            "requested_quote_units": "30",
+            "slug": "lisinopril-20mg-tablet",
+            "special_handling": "",
+            "strength": "20mg",
+            "unit_billing_price": "$0.0187",
+            "unit_price": "$0.016",
+            "url": "https://www.costplusdrugs.com/medications/lisinopril-20mg-tablet/"
+          }
+        ]
+      }
+    },
+    {
+      "received_at": "2026-09-05T22:12:29.295Z",
+      "request_url": "https://us-central1-costplusdrugs-publicapi.cloudfunctions.net/main?ndc=68180098103&quantity_units=90",
+      "response": {
+        "results": [
+          {
+            "auto_refill": true,
+            "brand_generic": "Generic",
+            "brand_name": "Prinivil",
+            "form": "Tablet",
+            "insurance_eligible": "Yes",
+            "medication_name": "Lisinopril",
+            "medispan_pack_size": "1000",
+            "medispan_pack_size_units": "ea",
+            "medispan_quantity": "1",
+            "ndc": "68180098103",
+            "pill_nonpill": "Pill",
+            "requested_quote": "$6.66",
+            "requested_quote_units": "90",
+            "slug": "lisinopril-20mg-tablet",
+            "special_handling": "",
+            "strength": "20mg",
+            "unit_billing_price": "$0.0187",
+            "unit_price": "$0.016",
+            "url": "https://www.costplusdrugs.com/medications/lisinopril-20mg-tablet/"
+          }
+        ]
+      }
+    }
+  ],
+  "expected": {
+    "name": "Lisinopril 20mg Tablet",
+    "ndc": "68180098103",
+    "quantities": [
+      "30",
+      "90"
+    ],
+    "prices_cents": [
+      "555",
+      "666"
+    ],
+    "availability": "unknown",
+    "quote_kind": "estimate"
+  },
+  "note": "API fixture; 30 units at $5.55 and 90 units at $6.66 were independently checked with Codex browser control on September 5, 2026. This preliminary check is not the final 100-listing source audit."
+}

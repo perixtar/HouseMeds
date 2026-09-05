@@ -12,6 +12,15 @@ export class Repository {
    from jsonb_to_recordset($2::jsonb) as x(url text,parent text,reason text)
    on conflict(source_id,url) do update set last_seen_at=greatest(pricing.crawl_pages.last_seen_at,excluded.last_seen_at)`,[sourceId,JSON.stringify([...new Map(items.map(i=>[i.url,{url:i.url,parent:i.from,reason:i.reason}])).values()])]);
  }
+ async nextDiscovery(sourceId:string,origin:string,cutoff:string|null){
+  const {rows}=await this.pool.query(`select * from pricing.crawl_pages where source_id=$1 and page_type<>'ignored' and next_crawl_at<=now()
+   and ((last_success_at is null and last_result is distinct from 'not_found') or ($3::timestamptz is not null and next_crawl_at<=$3))
+   order by case when url=$2 or url=$2||'sitemap' or url=$2||'medications/' then 0 when page_type='product' then 3 else 1 end,first_seen_at,id limit 1`,[sourceId,origin+'/',cutoff]);return rows[0]??null;
+ }
+ async remainingDiscovery(sourceId:string,cutoff:string|null){
+  return (await this.pool.query(`select count(*)::int n from pricing.crawl_pages where source_id=$1 and page_type<>'ignored'
+   and ((last_success_at is null and last_result is distinct from 'not_found') or ($2::timestamptz is not null and next_crawl_at<=$2))`,[sourceId,cutoff])).rows[0].n as number;
+ }
  async pageResult(pageId:string,kind:string,result:string,success:boolean){await this.pool.query(`update pricing.crawl_pages set page_type=$2,last_attempt_at=statement_timestamp(),last_result=$3,
  last_success_at=case when $4 then statement_timestamp() else last_success_at end,
  next_crawl_at=statement_timestamp()+(case when $4 and $2='product' then interval '1 day' when $4 then interval '7 days' else interval '1 hour' end) where id=$1`,[pageId,kind,result,success]);}

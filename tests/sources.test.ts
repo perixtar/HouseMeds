@@ -13,3 +13,19 @@ test('pagination waits for new product links after the range changes',async()=>{
  const result=await client.next(previous);assert.ok(result.links.includes('https://www.healthwarehouse.com/new-product'));assert.ok(!result.links.includes('https://www.healthwarehouse.com/old-product'));assert.equal(result.next,false);assert.equal(result.range,'25-48 of 48');
  }finally{await browser.close();}
 });
+
+test('Cost Plus API parses exact quoted totals and keeps live stock unknown',async()=>{
+ const {costplus}=await import('../src/sources.js');const f=JSON.parse(await readFile(new URL('./fixtures/costplus-lisinopril-api.json',import.meta.url),'utf8'));
+ const client=new SourceClient('costplus');client.json=async url=>structuredClone(f.responses.find((x:any)=>x.request_url===url).response);
+ const captured:unknown[]=[];const r=await costplus(client,f.responses[0].response.results[0],f.url,['30','90'],undefined,undefined,x=>captured.push(x));
+ assert.deepEqual(r.offers.map(x=>x.price_cents),['555','666']);assert.ok(r.offers.every(x=>x.availability==='unknown'&&x.terms.quote_kind==='estimate'));
+ assert.equal(r.listing.content_quantity,'1');assert.equal(r.listing.content_unit,'tablet');assert.equal(r.listing.brand_name,null);assert.equal(captured.length,2);
+});
+test('Cost Plus rejects substituted identities, missing quantities, and API errors',async()=>{
+ const {costplus}=await import('../src/sources.js');const f=JSON.parse(await readFile(new URL('./fixtures/costplus-lisinopril-api.json',import.meta.url),'utf8'));
+ for(const kind of ['strength','brand','quantity','ndc','error','duplicate']){
+  const client=new SourceClient('costplus');const data=structuredClone(f.responses[0].response);const row=data.results[0];
+  if(kind==='strength')row.strength='10mg';if(kind==='brand')row.brand_name='Different reference product';if(kind==='quantity')row.requested_quote_units='60';if(kind==='ndc')row.ndc='00000000000';if(kind==='error')row.error_message='Estimate unavailable';if(kind==='duplicate')data.results.push(structuredClone(row));
+  client.json=async()=>data;await assert.rejects(costplus(client,f.responses[0].response.results[0],f.url,['30']),/QUOTE_IDENTITY_MISMATCH|AMBIGUOUS_OR_MISSING_QUOTE/,kind);
+ }
+});
