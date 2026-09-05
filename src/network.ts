@@ -1,10 +1,20 @@
-import {Resolver} from 'node:dns/promises';import {lookup as nativeLookup,type LookupAddress} from 'node:dns';
+import {Resolver} from 'node:dns/promises';import dns,{type LookupAddress} from 'node:dns';
 import {Socket,type LookupFunction} from 'node:net';import {Agent} from 'undici';
-type Address=LookupAddress&{ttl:number};
+type Address=LookupAddress&{ttl?:number};
 const cache=new Map<string,{until:number;addresses:Address[]}>(),pending=new Map<string,Promise<Address[]>>();
 const publicHost=(h:string)=>h.endsWith('.pooler.supabase.com')||h.endsWith('.supabase.co')||['www.healthwarehouse.com','healthwarehouse.com','www.costplusdrugs.com','costplusdrugs.com','us-central1-costplusdrugs-publicapi.cloudfunctions.net'].includes(h);
-async function query(hostname:string,family:4|6,fallback:boolean):Promise<Address[]>{
- const resolver=new Resolver({timeout:1000,tries:1});if(fallback)resolver.setServers(['1.1.1.1']);
+function queryNative(hostname:string,family:4|6):Promise<Address[]>{
+ return new Promise((resolve,reject)=>{
+  // Keep macOS resolver/cache behavior. lookup cannot be cancelled; a late callback
+  // only settles this already-completed promise and never replaces a fallback answer.
+  const timer=setTimeout(()=>reject(Object.assign(Error('Native DNS lookup timed out'),{code:'ETIMEOUT'})),2200);
+  dns.lookup(hostname,{family,all:true},(error,addresses)=>{
+   clearTimeout(timer);if(error)reject(error);else if(!addresses.length)reject(Error('NO_DNS_ADDRESSES'));else resolve(addresses);
+  });
+ });
+}
+async function queryFallback(hostname:string,family:4|6):Promise<Address[]>{
+ const resolver=new Resolver({timeout:1000,tries:1});resolver.setServers(['1.1.1.1']);
  const timer=setTimeout(()=>resolver.cancel(),2200);
  try{const records=family===6?await resolver.resolve6(hostname,{ttl:true}):await resolver.resolve4(hostname,{ttl:true});if(!records.length)throw Error('NO_DNS_ADDRESSES');return records.map(x=>({...x,family}));}finally{clearTimeout(timer);}
 }
@@ -14,14 +24,17 @@ export async function resolvePublicHost(hostname:string,family:4|6=4):Promise<Ad
  if(pending.has(key))return pending.get(key)!;
  const job=(async()=>{
   let addresses:Address[];
-  try{addresses=await query(hostname,family,false);}catch{
-   addresses=await query(hostname,family,true);console.warn(JSON.stringify({event:'dns_fallback',hostname,resolver:'1.1.1.1'}));
+  try{addresses=await queryNative(hostname,family);}catch{
+   addresses=await queryFallback(hostname,family);console.warn(JSON.stringify({event:'dns_fallback',hostname,resolver:'1.1.1.1'}));
   }
-  cache.set(key,{addresses,until:Date.now()+Math.max(0,Math.min(60,...addresses.map(x=>x.ttl)))*1000});return addresses;
+  // Native lookup exposes no record TTL: let the OS own that cache. Only direct
+  // fallback answers are cached here, for their shortest TTL and at most 60 seconds.
+  const ttl=Math.max(0,Math.min(60,...addresses.map(x=>x.ttl??0)));
+  if(ttl>0)cache.set(key,{addresses,until:Date.now()+ttl*1000});else cache.delete(key);return addresses;
  })();pending.set(key,job);try{return await job;}finally{pending.delete(key);}
 }
 export const boundedLookup:LookupFunction=(hostname,options,callback)=>{
- if(!publicHost(hostname)){nativeLookup(hostname,options,callback);return;}
+ if(!publicHost(hostname)){dns.lookup(hostname,options,callback);return;}
  const family=options.family===6?6:4;
  void resolvePublicHost(hostname,family).then(addresses=>{
   if(options.all)callback(null,addresses.map(({address,family})=>({address,family})));else callback(null,addresses[0].address,addresses[0].family);
