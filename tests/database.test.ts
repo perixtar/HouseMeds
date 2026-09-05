@@ -67,3 +67,21 @@ test('API pagination and membership context keep offers distinct',async()=>{
 test('anonymous and authenticated app roles cannot read the pricing schema',async()=>{
  for(const role of ['anon','authenticated']){await admin.query(`set role ${role}`);try{await assert.rejects(admin.query('select * from pricing.offers'),{code:'42501'});}finally{await admin.query('reset role');}}
 });
+
+test('the actual collector CLI persists quantity outcomes and preserves prices on a blocked follow-up',async()=>{
+ const {mkdtemp,writeFile,rm}=await import('node:fs/promises');const {spawnSync}=await import('node:child_process');
+ const dir=await mkdtemp(resolve('.cache/cli-test-'));const url='https://www.healthwarehouse.com/cli-test-product';
+ await repo.discover(sourceId,[{url,from:null,reason:null}]);const page=(await worker.query('select id from pricing.crawl_pages where source_id=$1 and url=$2',[sourceId,url])).rows[0];
+ const fixture=JSON.parse(await readFile('tests/fixtures/healthwarehouse-lisinopril.json','utf8'));const file=dir+'/manifest.json';
+ await writeFile(file,JSON.stringify({inventory_audit_passed:false,listings:[{source:'healthwarehouse',page_id:page.id,url,source_product_key:'CLI-TEST',planned_quantities:fixture.expected.quantities}]}));
+ const env={...process.env,DATABASE_URL:`postgresql://housemed_worker@localhost/housemed_test?host=${encodeURIComponent(host)}&port=${port}`,SUPABASE_SECRET_KEY:'',SUPABASE_PROJECT_REF:'test'};
+ try{
+  const first=spawnSync(process.execPath,['--import','tsx','tests/fixtures/collector-driver.mjs',file],{env,encoding:'utf8',timeout:15000});assert.equal(first.status,0,first.stdout+first.stderr);
+  const run=(await worker.query('select * from pricing.crawl_runs where source_id=$1 order by id desc limit 1',[sourceId])).rows[0];
+  assert.equal(run.status,'succeeded');assert.equal(run.summary.scope,'access_test');assert.equal(run.summary.successful_listings,1);assert.equal(run.summary.successful_quantity_checks,fixture.expected.quantities.length);assert.equal(run.checkpoint.manifest_index,1);
+  const old=(await worker.query("select o.* from pricing.offers o join pricing.listings l on l.id=o.listing_id where l.source_product_key='CLI-TEST' order by o.id")).rows;
+  const blocked=spawnSync(process.execPath,['--import','tsx','tests/fixtures/collector-driver.mjs',file,'blocked'],{env,encoding:'utf8',timeout:15000});assert.equal(blocked.status,1,blocked.stdout+blocked.stderr);
+  const failed=(await worker.query('select * from pricing.crawl_runs where source_id=$1 order by id desc limit 1',[sourceId])).rows[0];assert.equal(failed.summary.source_paused,true);assert.equal(failed.summary.planned_quantity_checks,fixture.expected.quantities.length);assert.equal(failed.summary.successful_quantity_checks,0);assert.equal(failed.checkpoint.collection_results[page.id].reason,'SOURCE_BLOCKED');
+  assert.deepEqual((await worker.query("select o.* from pricing.offers o join pricing.listings l on l.id=o.listing_id where l.source_product_key='CLI-TEST' order by o.id")).rows,old);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});

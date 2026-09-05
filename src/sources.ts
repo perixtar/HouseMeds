@@ -1,3 +1,4 @@
+import {networkFetch} from './network.js';
 import {chromium,type Browser,type Page} from 'playwright';
 import {createRequire} from 'node:module';
 const robotsParser = createRequire(import.meta.url)('robots-parser') as (url:string,text:string)=>{isAllowed:(url:string,agent:string)=>boolean|undefined;getCrawlDelay:(agent:string)=>number|undefined};
@@ -11,7 +12,7 @@ export class SourceClient {
  constructor(public source:SourceSlug){}
  async pace(){const wait=Math.max(0,this.nextRequest-Date.now());if(wait)await delay(wait);this.nextRequest=Date.now()+Math.max(5000,Number(process.env.CRAWL_DELAY_MS??5000),((this.rules?.getCrawlDelay('HouseMed')??0)*1000));}
  async init(){
-  const url=sources[this.source].origin+'/robots.txt';const r=await fetch(url,{signal:AbortSignal.timeout(30000),redirect:'error'});if(!r.ok)throw new SourceAccessError('ROBOTS_UNAVAILABLE_'+r.status);this.rules=robotsParser(url,await r.text());
+  const url=sources[this.source].origin+'/robots.txt';const r=await networkFetch(url,{signal:AbortSignal.timeout(30000),redirect:'error'});if(!r.ok)throw new SourceAccessError('ROBOTS_UNAVAILABLE_'+r.status);this.rules=robotsParser(url,await r.text());
  }
  allowed(url:string){return this.rules?.isAllowed(url,'HouseMed')!==false;}
  async json(url:string):Promise<Json>{
@@ -23,7 +24,7 @@ export class SourceClient {
   if(checkScope&&(!normalizeUrl(url,url,this.source)||normalizeUrl(url,url,this.source)?.reason||!this.allowed(url)))throw new SourceAccessError('URL_EXCLUDED');
   for(let attempt=0;attempt<3;attempt++){
    await this.pace();let r:Response;
-   try{r=await fetch(url,{signal:AbortSignal.timeout(30000),redirect:'manual'});}catch(e){if(attempt<2){await delay(1000*2**attempt);continue;}throw new SourceAccessError('FETCH_TIMEOUT');}
+   try{r=await networkFetch(url,{signal:AbortSignal.timeout(30000),redirect:'manual'});}catch(e){if(attempt<2){await delay(1000*2**attempt);continue;}throw new SourceAccessError('FETCH_TIMEOUT');}
    if([301,302,303,307,308].includes(r.status)){const target=new URL(r.headers.get('location')??'',url);if(!checkScope||!normalizeUrl(target.href,url,this.source)||normalizeUrl(target.href,url,this.source)?.reason)throw new SourceAccessError('UNAPPROVED_REDIRECT');return this.get(target.href,checkScope,redirects+1);}
    if(r.status===403)throw new SourceAccessError('SOURCE_BLOCKED');
    if(r.status===429){const h=r.headers.get('retry-after'),seconds=h&&/^\d+$/.test(h)?Number(h):h?Math.max(0,(Date.parse(h)-Date.now())/1000):60;throw new SourceAccessError('SOURCE_RATE_LIMITED',seconds);}

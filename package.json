@@ -14,7 +14,9 @@
     "pretest": "node scripts/prepare-test-db.mjs",
     "backup": "node scripts/backup.mjs",
     "report": "node scripts/report.mjs",
-    "services": "node scripts/mac-services.mjs"
+    "services": "node scripts/mac-services.mjs",
+    "pilot": "tsx src/schedule.ts",
+    "benchmark": "tsx src/benchmark.ts"
   },
   "dependencies": {
     "cheerio": "1.2.0",
@@ -22,7 +24,8 @@
     "fastify": "5.12.3",
     "pg": "8.23.0",
     "playwright": "1.63.0",
-    "robots-parser": "3.0.1"
+    "robots-parser": "3.0.1",
+    "undici": "7.29.1"
   },
   "devDependencies": {
     "@types/pg": "8.23.1",

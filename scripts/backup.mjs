@@ -1,3 +1,4 @@
+import {DatabaseSocket,networkFetch} from '../src/network.ts';
 import pg from 'pg';
 import {readFile,mkdir,writeFile,readdir,rm} from 'node:fs/promises';
 import {gzipSync,gunzipSync} from 'node:zlib';
@@ -6,7 +7,7 @@ import {createHash} from 'node:crypto';
 process.loadEnvFile('.env.worker');
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
 const tables=['sources','medications','crawl_runs','listings','crawl_pages','offers','offer_history'];
-const live=new pg.Client({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:true,ca:await readFile('config/supabase-ca.crt','utf8')},connectionTimeoutMillis:15000});
+const live=new pg.Client({connectionString:process.env.DATABASE_URL,stream:()=>new DatabaseSocket(),connectionTimeoutMillis:15000,ssl:{rejectUnauthorized:true,ca:await readFile('config/supabase-ca.crt','utf8')}});
 await live.connect();const snapshot={format:'housemed-logical-backup-v2',created_at:new Date().toISOString(),tables:{},evidence:[]};
 try{await live.query('begin isolation level repeatable read read only');for(const table of tables)snapshot.tables[table]=(await live.query(`select * from pricing.${table} order by id`)).rows;await live.query('commit');}finally{await live.end();}
 for(const run of snapshot.tables.crawl_runs){
@@ -37,9 +38,9 @@ const backupHash=digest(bytes);const report={backup:filename,sha256:backupHash,r
 if(process.env.SUPABASE_SECRET_KEY){
  const base=`https://${process.env.SUPABASE_PROJECT_REF}.supabase.co/storage/v1/object`;
  const headers={apikey:process.env.SUPABASE_SECRET_KEY,Authorization:`Bearer ${process.env.SUPABASE_SECRET_KEY}`};
- const upload=await fetch(`${base}/housemed-backups/${basename}`,{method:'POST',headers:{...headers,'Content-Type':'application/gzip','x-upsert':'false'},body:bytes,signal:AbortSignal.timeout(60000)});
+ const upload=await networkFetch(`${base}/housemed-backups/${basename}`,{method:'POST',headers:{...headers,'Content-Type':'application/gzip','x-upsert':'false'},body:bytes,signal:AbortSignal.timeout(60000)});
  if(!upload.ok)throw Error('BACKUP_UPLOAD_FAILED_'+upload.status);
- const download=await fetch(`${base}/authenticated/housemed-backups/${basename}`,{headers,signal:AbortSignal.timeout(60000)});
+ const download=await networkFetch(`${base}/authenticated/housemed-backups/${basename}`,{headers,signal:AbortSignal.timeout(60000)});
  if(!download.ok||digest(Buffer.from(await download.arrayBuffer()))!==backupHash)throw Error('REMOTE_BACKUP_VERIFY_FAILED');
  report.remote_verified=true;
 }
