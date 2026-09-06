@@ -19,4 +19,4 @@ data/
 .supabase/
 
 # Supabase CLI update cache
-supabase/.temp/
+backend/supabase/.temp/
