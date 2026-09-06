@@ -19,16 +19,21 @@
     "benchmark": "tsx src/benchmark.ts",
     "discovery:tick": "tsx src/discovery-schedule.ts",
     "e2e:live": "tsx scripts/e2e-live.mjs",
-    "e2e:controlled": "node scripts/e2e-controlled.mjs"
+    "e2e:controlled": "node scripts/e2e-controlled.mjs",
+    "ask": "tsx src/agent-cli.ts",
+    "mcp:pricing": "tsx src/agent-mcp.ts",
+    "e2e:agent": "tsx scripts/e2e-agent.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
     "cheerio": "1.2.0",
     "decimal.js": "10.6.0",
     "fastify": "5.12.3",
     "pg": "8.23.0",
     "playwright": "1.63.0",
     "robots-parser": "3.0.1",
-    "undici": "7.29.1"
+    "undici": "7.29.1",
+    "zod": "4.5.4"
   },
   "devDependencies": {
     "@types/pg": "8.23.1",

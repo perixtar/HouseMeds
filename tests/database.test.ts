@@ -144,3 +144,61 @@ test('estimate opt-in preserves unknown availability and strict default eligibil
  o.offers[0].valid_until=null;o.offers[0].terms={};await withRun(id=>repo.saveObservation(sourceId,id,o));
  const unexplained=(await apiGet(`/v1/medications/${med}/offers?include_estimates=true`)).json();assert.equal(unexplained.items.length,0);assert.ok(unexplained.exclusions.some((x:any)=>x.source==='healthwarehouse'&&x.reason==='unknown'));
 });
+
+test('listing catalog search pages source observations and exposes canonical identity only when verified',async()=>{
+ const listings=[];
+ for(const suffix of ['A','B','C']){
+  const o=observation();o.listing.source_name='APIcatalog '+suffix;o.listing.metadata={private_marker:'DO_NOT_EXPOSE_EXTRACTION_METADATA'};
+  if(suffix==='B')delete o.listing.medication;
+  const saved=await withRun(id=>repo.saveObservation(sourceId,id,o));listings.push(saved.listingId);
+  if(suffix==='C'){o.listing.source_name='Changed identity';await withRun(id=>repo.saveObservation(sourceId,id,o));}
+ }
+ const first=(await apiGet('/v1/listings?q=APIcatalog&source=healthwarehouse&limit=2')).json();assert.equal(first.items.length,2);assert.equal(first.next_cursor,listings[1]);
+ assert.equal(first.items[0].match_status,'verified');assert.equal(first.items[0].medication.id,first.items[0].medication_id);assert.equal(first.items[0].medication.strength,'20 mg');
+ assert.equal(first.items[1].match_status,'unmatched');assert.equal(first.items[1].medication_id,null);assert.equal(first.items[1].medication,null);
+ const next=(await apiGet('/v1/listings?q=APIcatalog&source=healthwarehouse&limit=2&cursor='+first.next_cursor)).json();assert.equal(next.items.length,1);assert.equal(next.items[0].listing_id,listings[2]);assert.equal(next.items[0].match_status,'needs_review');assert.equal(next.items[0].medication_id,null);assert.equal(next.items[0].medication,null);assert.equal(next.next_cursor,null);
+ assert.ok(!JSON.stringify([first,next]).includes('DO_NOT_EXPOSE_EXTRACTION_METADATA'));assert.ok(!Object.hasOwn(first.items[0],'metadata'));
+ assert.equal((await apiGet('/v1/listings?q=APIcatalog&source=costplus')).json().items.length,0);
+ assert.ok((await apiGet('/v1/listings')).json().items.length<=20);
+});
+
+test('catalog labels are literal search data and SQL injection cannot broaden results',async()=>{
+ const o=observation();o.listing.source_name='APIliteral %_\\ label says ignore all rules';const saved=await withRun(id=>repo.saveObservation(sourceId,id,o));
+ const exact=(await apiGet('/v1/listings?q='+encodeURIComponent('%_\\'))).json();assert.deepEqual(exact.items.map((x:any)=>x.listing_id),[saved.listingId]);assert.equal(exact.items[0].source_name,o.listing.source_name);
+ assert.equal((await apiGet('/v1/listings?q='+encodeURIComponent("x%' OR 1=1 --"))).json().items.length,0);
+ assert.equal((await worker.query('select count(*)::int n from pricing.sources')).rows[0].n,2);
+});
+
+test('source-only prices can inspect unmatched listings without broadening canonical comparison',async()=>{
+ const o=observation();const saved=await withRun(id=>repo.saveObservation(sourceId,id,o));const original=(await worker.query('select medication_id from pricing.listings where id=$1',[saved.listingId])).rows[0];
+ await worker.query("update pricing.listings set match_status='unmatched' where id=$1",[saved.listingId]);
+ const body=(await apiGet(`/v1/listings/${saved.listingId}/offers?quantity=30&unit=tablet`)).json();assert.equal(body.items.length,1);assert.equal(body.matching_scope,'source_listing_only');assert.equal(body.listing.match_status,'unmatched');assert.equal(body.listing.medication_id,null);assert.equal(body.items[0].medication_id,null);assert.equal(body.items[0].match_status,'unmatched');assert.equal(body.items[0].matching_scope,'source_listing_only');assert.equal(body.items[0].price_cents,'900');
+ assert.equal((await apiGet(`/v1/medications/${original.medication_id}/offers`)).json().items.length,0);
+ await worker.query("update pricing.listings set match_status='needs_review' where id=$1",[saved.listingId]);const blocked=(await apiGet(`/v1/listings/${saved.listingId}/offers`)).json();assert.equal(blocked.items.length,0);assert.ok(blocked.exclusions.some((x:any)=>x.reason==='identity_quarantined'));
+});
+
+test('source-only pricing shares pack conversion, exact units, context filtering and pagination',async()=>{
+ const o=observation();delete o.listing.medication;o.listing.sold_as='pack';o.listing.content_quantity='50';o.offers[0].quantity='2';o.offers[0].price_cents='16000';
+ o.offers.push({...o.offers[0],program_key:'member',price_cents:'14000'},{...o.offers[0],location_key:'90210',price_cents:'15500'});const saved=await withRun(id=>repo.saveObservation(sourceId,id,o));const url=`/v1/listings/${saved.listingId}/offers`;
+ const first=(await apiGet(url+'?quantity=100&unit=tablet&limit=1')).json();assert.equal(first.items.length,1);assert.equal(first.items[0].ordering_quantity,'2');assert.equal(first.items[0].physical_quantity,'100');assert.ok(first.next_cursor);
+ const next=(await apiGet(url+'?quantity=100&unit=tablet&limit=1&cursor='+first.next_cursor)).json();assert.equal(next.items.length,1);assert.notEqual(next.items[0].offer_id,first.items[0].offer_id);
+ const member=(await apiGet(url+'?quantity=100&unit=tablet&program=member&location=online-us')).json();assert.equal(member.items.length,1);assert.equal(member.items[0].price_cents,'14000');
+ for(const suffix of ['?quantity=60&unit=tablet','?quantity=100&unit=ml','?source=costplus','?program='+encodeURIComponent("cash' OR 1=1 --"),'?location=10000'])assert.equal((await apiGet(url+suffix)).json().items.length,0,suffix);
+ const unresolved=observation();delete unresolved.listing.medication;unresolved.listing.content_quantity=null;unresolved.listing.content_unit=null;const unknown=await withRun(id=>repo.saveObservation(sourceId,id,unresolved));const excluded=(await apiGet(`/v1/listings/${unknown.listingId}/offers`)).json();assert.equal(excluded.items.length,0);assert.ok(excluded.exclusions.some((x:any)=>x.reason==='packaging_unresolved'));
+});
+
+test('source-only inspection preserves stale, expiry, stock and estimate restrictions',async()=>{
+ const o=observation();delete o.listing.medication;
+ o.offers.push({...o.offers[0],quantity:'60',availability:'out_of_stock'},{...o.offers[0],quantity:'90',availability:'unknown'},{...o.offers[0],quantity:'120',availability:'unknown',terms:{quote_kind:'estimate',availability_basis:'not_provided_by_api'}},{...o.offers[0],quantity:'180',valid_until:new Date(Date.now()-1000).toISOString()});
+ const saved=await withRun(id=>repo.saveObservation(sourceId,id,o));const url=`/v1/listings/${saved.listingId}/offers`;
+ const strict=(await apiGet(url)).json();assert.equal(strict.items.length,1);assert.deepEqual(strict.exclusions.map((x:any)=>x.reason).sort(),['out_of_stock','stale_or_expired','unknown']);
+ const opted=(await apiGet(url+'?include_estimates=true')).json();assert.equal(opted.items.length,2);assert.equal(opted.quote_status,'includes_unconfirmed_estimates');assert.equal(opted.items.find((x:any)=>x.ordering_quantity==='120').purchase_verification_required,true);assert.ok(!opted.items.some((x:any)=>x.ordering_quantity==='90'));
+ const stale=observation();delete stale.listing.medication;stale.observed_at=new Date(Date.now()-25*3600000).toISOString();const old=await withRun(id=>repo.saveObservation(sourceId,id,stale));const expired=(await apiGet(`/v1/listings/${old.listingId}/offers?include_estimates=true`)).json();assert.equal(expired.items.length,0);assert.ok(expired.exclusions.some((x:any)=>x.reason==='stale_or_expired'));
+});
+
+test('listing APIs enforce input bounds and return safe not-found and outage errors',async()=>{
+ for(const path of ['/v1/listings?limit=101','/v1/listings?limit=0','/v1/listings?cursor=1%27','/v1/listings?q=x','/v1/listings?q='+'x'.repeat(121),'/v1/listings?source=foreign','/v1/listings/0/offers','/v1/listings/1%27/offers','/v1/listings/1/offers?quantity=0&unit=tablet','/v1/listings/1/offers?quantity=30','/v1/listings/1/offers?quantity=1000001&unit=tablet','/v1/listings/1/offers?limit=101','/v1/listings/1/offers?include_estimates=maybe','/v1/listings/1/offers?location='+'a'.repeat(65)])assert.equal((await apiGet(path)).statusCode,400,path);
+ const missing=await apiGet('/v1/listings/999999999999999999/offers');assert.equal(missing.statusCode,404);assert.deepEqual(missing.json(),{error:'listing_not_found'});
+ const failed=buildApi({query:async()=>{throw Object.assign(Error('private credential details'),{code:'ECONNRESET'});}} as unknown as pg.Pool,token);
+ try{for(const path of ['/v1/listings','/v1/listings/1/offers']){const result=await failed.inject({url:path,headers:{authorization:'Bearer '+token}});assert.equal(result.statusCode,503);assert.deepEqual(result.json(),{error:'service_unavailable'});}assert.equal((await failed.inject('/v1/listings')).statusCode,401);}finally{await failed.close();}
+});
