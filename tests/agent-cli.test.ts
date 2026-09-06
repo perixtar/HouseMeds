@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {createServer,type Server} from 'node:http';import {mkdtemp,rm,readFile} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';
+import {createServer,type Server} from 'node:http';import {mkdtemp,rm,readFile,readdir,mkdir,access} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join,resolve} from 'node:path';
 import {runAgent} from '../src/agent-cli.js';
 async function listen(server:Server){await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));return 'http://127.0.0.1:'+(server.address() as {port:number}).port;}
 async function close(server:Server){server.closeAllConnections();await new Promise<void>(r=>server.close(()=>r()));}
@@ -26,4 +26,20 @@ test('CLI deadline stops stalled model work and produces an explicit failure',{t
  const server=createServer(()=>{});const modelBaseUrl=await listen(server);t.after(()=>close(server));
  const start=Date.now(),result=await runAgent({question:'Read source status.',apiOrigin:'http://127.0.0.1:63813',apiToken:'test-api-token-'.repeat(4),apiKey:'fixture-provider-secret',modelBaseUrl,auditRoot:dir,timeoutMs:1000});
  assert.equal(result.status,'failed');assert.equal(result.error,'agent_deadline_exceeded');assert.ok(Date.now()-start<7000);
+});
+test('private runtime credentials are removed even when final audit persistence fails',{timeout:20000},async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'housemed-audit-failure-'));t.after(()=>rm(dir,{recursive:true,force:true}));let runtime='';
+ const server=createServer(async(req,res)=>{
+  for await(const chunk of req){};
+  const run=(await readdir(dir))[0];assert.ok(run);const auditPath=join(dir,run,'tools.log');
+  for(const entry of await readdir(resolve('.cache'))){
+   if(!entry.startsWith('agent-runtime-'))continue;
+   const candidate=resolve('.cache',entry);let config:any;try{config=JSON.parse(await readFile(join(candidate,'mcp.json'),'utf8'));}catch{continue;}
+   if(config.auditPath===auditPath){runtime=candidate;break;}
+  }
+  assert.ok(runtime);await mkdir(join(dir,run,'events.log'));
+  respond(res,1,[{type:'message',id:'m1',role:'assistant',content:[{type:'output_text',text:JSON.stringify({status:'declined',intent:'other',catalog_refs:[],offer_refs:[],source_refs:[],clarify_field:'none',reason:'out_of_scope'}),annotations:[]}]}]);
+ });const modelBaseUrl=await listen(server);t.after(()=>close(server));
+ await assert.rejects(runAgent({question:'Modify the database.',apiOrigin:'http://127.0.0.1:63813',apiToken:'test-api-token-'.repeat(4),apiKey:'fixture-provider-secret',modelBaseUrl,auditRoot:dir,timeoutMs:10000}),{code:'EISDIR'});
+ assert.ok(runtime);await assert.rejects(access(runtime),{code:'ENOENT'});
 });

@@ -59,11 +59,12 @@ export async function runAgent(options:AgentRunOptions):Promise<AgentRunResult>{
   if(records.length>8)throw Error('agent_tool_limit_exceeded');
   const answer=validateAgentAnswer(selections,records),text=renderAgentAnswer(answer);
   result={status:'completed',answer,text,run_directory:runDirectory,usage};
- }catch(error){result={status:'failed',run_directory:runDirectory,error:error instanceof Error?error.message:'agent_execution_failed'};}
+ }catch(error){result={status:'failed',run_directory:runDirectory,usage:events.findLast(e=>e.type==='turn.completed')?.usage,error:error instanceof Error?error.message:'agent_execution_failed'};}
  finally{
+  try{
   await writeFile(join(runDirectory,'events.log'),events.map(e=>JSON.stringify(e)).join('\n')+'\n',{mode:0o600});await writeFile(join(runDirectory,'diagnostics.log'),redact(diagnostics),{mode:0o600});
   await writeFile(join(runDirectory,'result.json'),redact(JSON.stringify({...result,question:options.question,model:AGENT_MODEL,codex_version:AGENT_CODEX_VERSION,started_at:new Date(started).toISOString(),elapsed_ms:Date.now()-started,tool_calls:toolCount},null,2))+'\n',{mode:0o600});
-  await rm(taskRuntimePath,{recursive:true,force:true});
+  }finally{await rm(taskRuntimePath,{recursive:true,force:true});}
  }
  return result;
 }

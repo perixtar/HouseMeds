@@ -22,7 +22,8 @@
     "e2e:controlled": "node scripts/e2e-controlled.mjs",
     "ask": "tsx src/agent-cli.ts",
     "mcp:pricing": "tsx src/agent-mcp.ts",
-    "e2e:agent": "tsx scripts/e2e-agent.ts"
+    "e2e:agent": "tsx scripts/e2e-agent.ts",
+    "e2e:agent:live": "tsx scripts/e2e-agent-live.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
