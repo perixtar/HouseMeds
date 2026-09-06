@@ -8,7 +8,7 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsx --test tests/*.test.ts tests/*.test.mjs",
     "api": "tsx src/api.ts",
     "crawl": "tsx src/cli.ts",
     "pretest": "node scripts/prepare-test-db.mjs",
@@ -17,7 +17,9 @@
     "services": "node scripts/mac-services.mjs",
     "pilot": "tsx src/schedule.ts",
     "benchmark": "tsx src/benchmark.ts",
-    "discovery:tick": "tsx src/discovery-schedule.ts"
+    "discovery:tick": "tsx src/discovery-schedule.ts",
+    "e2e:live": "tsx scripts/e2e-live.mjs",
+    "e2e:controlled": "node scripts/e2e-controlled.mjs"
   },
   "dependencies": {
     "cheerio": "1.2.0",
