@@ -1,5 +1,7 @@
-import {spawn,execFileSync} from 'node:child_process';
-import {mkdir,mkdtemp,writeFile,readFile,rm} from 'node:fs/promises';
+import {spawn,spawnSync,execFileSync} from 'node:child_process';
+import {mkdir,mkdtemp,writeFile,readFile,rm,access,stat} from 'node:fs/promises';
+import {constants} from 'node:fs';
+import {homedir} from 'node:os';
 import {resolve,dirname,join} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {parseEnv} from 'node:util';
@@ -11,13 +13,24 @@ import {validateMcpConfig,type AgentToolRecord} from './agent-mcp.js';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 export interface AgentRunOptions {question:string;apiOrigin:string;apiToken:string;apiKey:string;model?:string;auditRoot?:string;timeoutMs?:number;modelBaseUrl?:string;}
 export interface AgentRunResult {status:'completed'|'failed';answer?:ValidatedAgentAnswer;text?:string;run_directory:string;usage?:unknown;error?:string;}
+export async function resolveCodexBinary(env:NodeJS.ProcessEnv=process.env,platform:NodeJS.Platform=process.platform):Promise<string>{
+ const override=env.HOUSEMED_CODEX_BIN?.trim();
+ const found=spawnSync('/usr/bin/which',[override||'codex'],{encoding:'utf8',env});
+ if(found.status===0&&found.stdout.trim())return found.stdout.trim();
+ if(override)throw Error('HOUSEMED_CODEX_BIN does not point to an executable Codex CLI.');
+ if(platform==='darwin')for(const applications of ['/Applications',join(homedir(),'Applications')])for(const app of ['Codex.app','ChatGPT.app']){
+  const binary=join(applications,app,'Contents/Resources/codex');
+  try{await access(binary,constants.X_OK);if((await stat(binary)).isFile())return binary;}catch{/* Try the next standard app location. */}
+ }
+ throw Error('Codex CLI was not found. Install Codex or set HOUSEMED_CODEX_BIN to its executable path.');
+}
 export async function runAgent(options:AgentRunOptions):Promise<AgentRunResult>{
  if(!options.question.trim()||options.question.length>4000)throw Error('QUESTION_MUST_BE_1_TO_4000_CHARACTERS');
  if(!options.apiKey)throw Error('OPENAI_API_KEY_NOT_CONFIGURED');
  if(options.model&&options.model!==AGENT_MODEL)throw Error('MODEL_NOT_VALIDATED');
  validateMcpConfig({apiOrigin:options.apiOrigin,apiToken:options.apiToken});
  const timeout=options.timeoutMs??60000;if(!Number.isInteger(timeout)||timeout<1||timeout>60000)throw Error('INVALID_AGENT_DEADLINE');
- const codexBin=process.env.HOUSEMED_CODEX_BIN??execFileSync('/usr/bin/which',['codex'],{encoding:'utf8'}).trim();
+ const codexBin=await resolveCodexBinary();
  const version=execFileSync(codexBin,['--version'],{encoding:'utf8'}).trim();if(version!=='codex-cli '+AGENT_CODEX_VERSION)throw Error('CODEX_VERSION_NOT_VALIDATED');
  const runId=new Date().toISOString().replaceAll(':','-')+'-'+randomUUID().slice(0,8);
  const runDirectory=resolve(options.auditRoot??join(root,'data/audits/agent'),runId);await mkdir(runDirectory,{recursive:true,mode:0o700});

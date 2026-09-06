@@ -1,6 +1,19 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {createServer,type Server} from 'node:http';import {mkdtemp,rm,readFile,readdir,mkdir,access} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join,resolve} from 'node:path';
-import {runAgent} from '../src/agent-cli.js';
+import {createServer,type Server} from 'node:http';import {mkdtemp,rm,readFile,writeFile,readdir,mkdir,access} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join,resolve} from 'node:path';
+import {runAgent,resolveCodexBinary} from '../src/agent-cli.js';
+test('Codex discovery honors explicit configuration and PATH before app fallbacks',async t=>{
+ const dir=await mkdtemp(join(tmpdir(),'housemed-codex-path-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const onPath=join(dir,'codex'),explicit=join(dir,'custom codex');
+ for(const path of [onPath,explicit])await writeFile(path,'#!/bin/sh\nexit 0\n',{mode:0o700});
+ assert.equal(await resolveCodexBinary({PATH:dir}),onPath);
+ assert.equal(await resolveCodexBinary({PATH:dir,HOUSEMED_CODEX_BIN:explicit}),explicit);
+ await assert.rejects(resolveCodexBinary({PATH:dir,HOUSEMED_CODEX_BIN:join(dir,'missing')}),/HOUSEMED_CODEX_BIN/);
+ await assert.rejects(resolveCodexBinary({PATH:join(dir,'missing')},'linux'),/Codex CLI was not found/);
+});
+test('Mac app supplies Codex when an ordinary Terminal PATH cannot find it',{skip:process.platform!=='darwin'},async()=>{
+ const binary=await resolveCodexBinary({PATH:'/usr/bin:/bin'});assert.match(binary,/\/(?:Codex|ChatGPT)\.app\/Contents\/Resources\/codex$/);
+ await access(binary);
+});
 async function listen(server:Server){await new Promise<void>(r=>server.listen(0,'127.0.0.1',r));return 'http://127.0.0.1:'+(server.address() as {port:number}).port;}
 async function close(server:Server){server.closeAllConnections();await new Promise<void>(r=>server.close(()=>r()));}
 function toolResult(value:any):any{
