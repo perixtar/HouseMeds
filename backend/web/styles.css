@@ -1,0 +1,192 @@
+/* HouseMeds price ledger — printed-pharmacy-record aesthetic:
+   warm paper stock, ink rules, dot leaders and tabular figures. */
+:root{
+  --paper:#f2ece1;
+  --paper-deep:#e7dccb;
+  --card:#fbf7f0;
+  --ink:#15120e;
+  --ink-soft:#6b6154;
+  --ink-faint:#a1968612;
+  --rule:#15120e26;
+  --rule-strong:#15120e;
+  --accent:#bf4126;
+  --accent-soft:#bf412614;
+  --seal:#1f5c44;
+  --seal-soft:#1f5c4414;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;
+  --ui:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --shadow:0 1px 0 #15120e14,0 12px 28px -22px #15120e80;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);font-family:var(--ui);
+  font-size:16px;line-height:1.5;
+  background-image:
+    repeating-linear-gradient(90deg,transparent 0 39px,#15120e08 39px 40px),
+    radial-gradient(120% 90% at 50% -20%,#fffdf8 0%,transparent 60%);
+}
+.grain{
+  position:fixed;inset:0;pointer-events:none;z-index:2;opacity:.32;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---- masthead ------------------------------------------------------- */
+.masthead{max-width:1120px;margin:0 auto;padding:28px 24px 8px}
+.masthead__rule{
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  border-top:2px solid var(--rule-strong);border-bottom:1px solid var(--rule);
+  padding:7px 2px;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);
+}
+.masthead__title{
+  font-family:var(--display);font-optical-sizing:auto;font-weight:600;
+  font-variation-settings:"SOFT" 20,"WONK" 1;
+  font-size:clamp(52px,12vw,124px);line-height:.86;letter-spacing:-.035em;
+  margin:18px 0 0;text-align:center;
+}
+.masthead__title span{font-style:italic;font-weight:300;color:var(--accent)}
+.masthead__sub{
+  margin:10px 0 0;text-align:center;font-size:11px;letter-spacing:.42em;
+  text-transform:uppercase;color:var(--ink-soft);
+}
+main{max-width:1120px;margin:0 auto;padding:0 24px 72px}
+
+/* ---- prescription line ---------------------------------------------- */
+.script{
+  margin:34px 0 0;padding:26px 26px 20px;background:var(--card);
+  border:1px solid var(--rule);border-radius:2px;box-shadow:var(--shadow);
+  position:relative;
+}
+.script::before{
+  content:"";position:absolute;inset:6px;border:1px dashed var(--rule);border-radius:1px;pointer-events:none;
+}
+.script__form{display:flex;align-items:flex-end;gap:18px;position:relative;z-index:1}
+.script__sigil{
+  font-family:var(--display);font-size:40px;line-height:1;color:var(--accent);
+  padding-bottom:4px;flex:none;
+}
+.script__field{flex:1 1 auto;position:relative;min-width:0}
+.script__label{
+  display:block;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:2px;
+}
+#medicine{
+  width:100%;border:0;border-bottom:1.5px solid var(--rule-strong);background:transparent;
+  font-family:var(--display);font-size:clamp(24px,4vw,34px);font-weight:400;color:var(--ink);
+  padding:2px 0 6px;outline:none;
+}
+#medicine::placeholder{color:#15120e40;font-style:italic}
+#medicine:focus{border-bottom-color:var(--accent)}
+.script__go{
+  flex:none;display:inline-flex;align-items:center;gap:9px;cursor:pointer;
+  background:var(--rule-strong);color:var(--paper);border:0;border-radius:1px;
+  padding:13px 20px;font-family:var(--ui);font-size:12px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;transition:background .18s,transform .18s;
+}
+.script__go:hover{background:var(--accent)}
+.script__go:active{transform:translateY(1px)}
+.script__go svg{transition:transform .18s}
+.script__go:hover svg{transform:translateX(3px)}
+.script__hint{margin:16px 0 0;font-size:13px;color:var(--ink-soft)}
+.seed{
+  border:0;background:none;padding:0;cursor:pointer;font:inherit;color:var(--accent);
+  border-bottom:1px solid #bf412655;
+}
+.seed:hover{border-bottom-color:var(--accent)}
+
+.suggestions{
+  position:absolute;z-index:5;left:0;right:0;top:calc(100% + 6px);margin:0;padding:4px;list-style:none;
+  background:var(--card);border:1px solid var(--rule-strong);box-shadow:var(--shadow);max-height:280px;overflow:auto;
+}
+.suggestions li{padding:9px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:14px;align-items:baseline}
+.suggestions li[aria-selected="true"],.suggestions li:hover{background:var(--accent-soft)}
+.suggestions strong{font-family:var(--display);font-size:17px;font-weight:500}
+.suggestions em{font-style:normal;font-size:11px;color:var(--ink-soft);letter-spacing:.08em;font-family:var(--mono)}
+
+/* ---- results -------------------------------------------------------- */
+.results{margin-top:40px}
+.state{padding:28px 4px;font-size:14px;color:var(--ink-soft);border-top:1px solid var(--rule)}
+.state--error{color:var(--accent)}
+
+.dossier{border-top:2px solid var(--rule-strong);padding-top:18px;animation:rise .45s both}
+.dossier__head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:18px}
+.dossier__name{font-family:var(--display);font-size:clamp(30px,5vw,46px);font-weight:500;letter-spacing:-.02em;margin:0;line-height:1}
+.dossier__name em{font-style:italic;font-weight:300;color:var(--ink-soft)}
+.dossier__meta{font-size:11.5px;color:var(--ink-soft);letter-spacing:.12em;text-transform:uppercase;margin:8px 0 0}
+.strengths{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.strengths__label{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-soft);margin-right:4px}
+.strengths button{
+  font-family:var(--mono);font-size:12px;padding:6px 11px;cursor:pointer;
+  background:transparent;border:1px solid var(--rule);border-radius:1px;color:var(--ink-soft);transition:.15s;
+}
+.strengths button:hover{border-color:var(--rule-strong);color:var(--ink)}
+.strengths button[aria-pressed="true"]{background:var(--rule-strong);border-color:var(--rule-strong);color:var(--paper)}
+
+.headline{
+  margin:22px 0 0;padding:16px 20px;background:var(--seal-soft);border:1px solid #1f5c4433;
+  border-left:4px solid var(--seal);display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;
+  animation:rise .5s .06s both;
+}
+.headline__tag{font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--seal);font-weight:700}
+.headline__body{font-family:var(--display);font-size:clamp(18px,2.6vw,24px);font-weight:400;flex:1 1 380px;margin:0;line-height:1.3}
+.headline__body b{font-weight:600}
+.headline a{color:var(--seal);text-decoration:none;border-bottom:1.5px solid #1f5c4455;font-family:var(--ui);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;white-space:nowrap}
+.headline a:hover{border-bottom-color:var(--seal)}
+
+.ledger{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,430px),1fr));gap:18px;margin-top:22px;
+}
+.pharmacy{
+  background:var(--card);border:1px solid var(--rule);border-radius:2px;padding:20px 20px 12px;
+  box-shadow:var(--shadow);position:relative;animation:rise .5s both;
+}
+.pharmacy--best{border-color:var(--seal);box-shadow:0 0 0 1px var(--seal),var(--shadow)}
+.pharmacy__head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:1px solid var(--rule);padding-bottom:12px}
+.pharmacy__name{font-family:var(--display);font-size:25px;font-weight:500;margin:0;letter-spacing:-.01em;white-space:nowrap}
+.pharmacy__mode{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);margin:5px 0 0}
+.pharmacy__stamp{
+  flex:none;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;
+  border:1px solid var(--seal);color:var(--seal);padding:4px 8px;border-radius:1px;transform:rotate(-2deg);
+}
+.rows{list-style:none;margin:0;padding:0}
+.row{
+  display:grid;grid-template-columns:auto 1fr auto auto;align-items:baseline;gap:10px;
+  padding:13px 4px;border-bottom:1px dotted var(--rule);color:inherit;text-decoration:none;
+  transition:background .15s;position:relative;
+}
+.row:last-child{border-bottom:0}
+.row:hover{background:var(--ink-faint)}
+.row__term{font-family:var(--mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap}
+.row__term b{color:var(--ink);font-weight:600}
+.row__leader{border-bottom:1px dotted #15120e40;transform:translateY(-4px)}
+.row__price{
+  font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:20px;font-weight:600;letter-spacing:-.02em;white-space:nowrap;
+}
+.row__go{
+  flex:none;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);white-space:nowrap;
+  opacity:.55;transition:opacity .15s,transform .15s;
+}
+.row:hover .row__go{opacity:1;transform:translateX(2px)}
+.row__sub{grid-column:1/-1;font-size:11.5px;color:var(--ink-soft);margin-top:-4px;font-family:var(--mono)}
+.row--cheapest .row__price{color:var(--seal)}
+.row--cheapest .row__sub b{color:var(--seal);font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:10.5px}
+.row--cheapest .row__leader{border-bottom-color:#1f5c4455}
+.pharmacy__note{font-size:11.5px;color:var(--ink-soft);border-top:1px solid var(--rule);margin:0;padding:11px 4px 6px;line-height:1.45}
+
+.pharmacy__link{color:#15120e66}
+.footnote{margin:26px 0 0;font-size:11.5px;color:var(--ink-soft);letter-spacing:.03em}
+.colophon{
+  max-width:1120px;margin:0 auto;padding:22px 24px 60px;border-top:1px solid var(--rule);
+  font-size:12px;color:var(--ink-soft);line-height:1.6;
+}
+.colophon code{font-family:var(--mono);font-size:11.5px;background:var(--accent-soft);padding:1px 5px;color:var(--accent)}
+
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:640px){
+  .script__form{flex-wrap:wrap}
+  .script__go{width:100%;justify-content:center}
+  .row{grid-template-columns:auto 1fr auto}
+  .row__go{grid-column:3;font-size:10px}
+}
