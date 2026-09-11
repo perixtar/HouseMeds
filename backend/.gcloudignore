@@ -1,0 +1,14 @@
+.gcloudignore
+.git
+.gitignore
+.DS_Store
+.env
+.env.*
+.cache
+.supabase
+coverage
+data
+dist
+node_modules
+supabase/.temp
+tests
