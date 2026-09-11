@@ -40,4 +40,4 @@ gcloud run deploy housemeds-api \
 
 The local `npm run ask` client is not part of this deployment. It currently permits only a loopback API endpoint and must be updated separately before it can use the hosted API.
 
-See [Use the read API](../README.md#use-the-read-api) for authenticated request examples, route documentation, quantity semantics, and response interpretation.
+See [Use the database-backed read API](../README.md#use-the-database-backed-read-api) for authenticated request examples, route documentation, quantity semantics, and response interpretation.

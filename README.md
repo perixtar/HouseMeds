@@ -1,6 +1,6 @@
 # HouseMeds
 
-Medication catalog and pricing backend with a read-only CLI assistant. Backend files live in [`backend/`](backend/); documentation lives in [`docs/`](docs/).
+Medication catalog and pricing backend with a read-only CLI assistant and a prototype price-comparison web UI. Backend files live in [`backend/`](backend/); documentation lives in [`docs/`](docs/).
 
 The [HTML technical plan](docs/housemed-technical-plan.html) is the source of truth for architecture, implementation status, and MVP acceptance criteria. This README covers running the backend.
 
@@ -69,7 +69,7 @@ HouseMeds does not scale a 30-count price to estimate an unobserved 90- or 180-c
 
 For the hackathon, a family medication list should be processed ephemerally by making one exact-quantity query per medication. Do not attach names or family relationships to the requests. Persisting patient or household information would require a deliberate privacy, consent, retention, and access-control design that is outside the current schema.
 
-## Use the read API
+## Use the database-backed read API
 
 The API is read-only. It is available locally at `http://127.0.0.1:63813` and is deployed at `https://housemeds-api-jg3hpr52da-uw.a.run.app`. Every route requires the bearer token configured as `HOUSEMED_API_TOKEN`. Obtain the token through the team's approved secret-sharing process and put it in your environment; never commit it or paste it into documentation.
 
@@ -141,6 +141,63 @@ curl --fail-with-body --silent --show-error \
 The IDs above are examples; always use IDs returned by the search response. `price_cents` is the total price as an integer-cent string, not a per-unit price. `ordering_quantity` is the number of source products ordered, while `physical_quantity` is the number of tablets, capsules, milliliters, or other `content_unit` received.
 
 Check `quote_status` before presenting a result. An empty `items` array is explained by `exclusions`, for example `unsupported_quantity`, `not_matched`, `out_of_stock`, or `stale_or_expired`. HTTP `400` means invalid parameters, `401` means missing or incorrect credentials, `404` means the requested ID does not exist, and `503` means the API or database is temporarily unavailable.
+
+## Price-comparison web UI
+
+A browser page that takes a medication name and shows 30-, 90- and 365-day cash prices at Walmart,
+Costco, Cost Plus Drugs and Amazon Pharmacy, with every price linking to that pharmacy's own page.
+
+```bash
+npm run web
+```
+
+Then open <http://127.0.0.1:63814/>. It needs no database and no token, so it runs on a fresh
+checkout; the read API on port `63813` is unaffected.
+
+This prototype is separate from the database-backed read API documented above. Its price-comparison data is currently a mock snapshot, not a live view of the collected `pricing.offers` rows.
+
+### Mock UI API
+
+| Route | Purpose |
+| --- | --- |
+| `GET /v1/price-comparison?medication=<name>&strength=<strength>` | The four-supplier, three-tier comparison. `strength` is optional and defaults to the lowest catalogued strength. |
+| `GET /v1/medications?q=<text>&limit=<n>` | Type-ahead suggestions with the strengths on file. |
+| `GET /healthz` | Liveness, and which pricing source is in use. |
+
+```bash
+curl 'http://127.0.0.1:63814/v1/price-comparison?medication=Carvedilol&strength=12.5mg'
+```
+
+Each response carries `suppliers[]` (one entry per pharmacy, each with `quotes[]` for 30, 90 and 365
+days, a `price_cents`, a `price_per_day_cents`, a `pricing_basis` and a `purchase_url`),
+`best_by_days_supply` for the cheapest pharmacy in each tier, and `best_value` for the lowest cost
+per day overall.
+
+### Where the numbers come from
+
+`data_source` is `mock` in every response. Prices are served by
+[`backend/src/pricing-catalog.ts`](backend/src/pricing-catalog.ts) from the snapshot in
+[`backend/mock/pricing-catalog.json`](backend/mock/pricing-catalog.json) — **they are not collected
+observations, and the page says so.** Replace `lookupComparison` with repository queries to move the
+page onto real data; the response shape is meant to survive that swap.
+
+- **Cost Plus Drugs** rows — medication identity, NDC, per-unit price and product URL — are a
+  snapshot of that pharmacy's public catalog API, so its prices and links are real.
+- **Walmart, Costco and Amazon** figures are modelled from the Cost Plus acquisition price using the
+  per-supplier markup, fee and quantity-discount model in `pricing-catalog.ts`. Walmart's $4/$10
+  generic program is applied where the drug is on that list.
+
+Link destinations were checked in a real Chrome session:
+
+| Pharmacy | Link opens |
+| --- | --- |
+| Cost Plus Drugs | The product page for that exact strength, with its own price calculator. |
+| Amazon Pharmacy | `pharmacy.amazon.com` search results for the drug, with live listings and prices. |
+| Costco | The Member Prescription Program page named for the drug. Costco's `drug-directory-search-results` URL looks right but redirects to their home page once warehouse cookies are set, so it is deliberately not used. |
+| Walmart | The $4/$10 program page that documents the quoted price, or the pharmacy page for drugs not on that list — Walmart publishes no public per-drug cash price page. |
+
+The UI prints each link's destination on the supplier card, so a link never implies a product page it
+does not open.
 
 ## Start or restart the API
 

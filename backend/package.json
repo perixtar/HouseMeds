@@ -12,6 +12,7 @@
     "check": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts tests/*.test.mjs",
     "api": "tsx src/api.ts",
+    "web": "tsx src/web.ts",
     "crawl": "tsx src/cli.ts",
     "pretest": "node scripts/prepare-test-db.mjs",
     "backup": "node scripts/backup.mjs",

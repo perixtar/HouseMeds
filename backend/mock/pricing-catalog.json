@@ -1,0 +1,633 @@
+{
+ "$comment": "Mock pricing catalog for the HouseMeds price-comparison UI. Cost Plus Drugs rows (slug, product URL, NDC, unit price) are a snapshot of that pharmacy's public catalog API. Walmart, Costco and Amazon figures are MODELLED estimates derived from the acquisition unit price in src/pricing-catalog.ts, not observed prices.",
+ "snapshot_source": "https://us-central1-costplusdrugs-publicapi.cloudfunctions.net/main",
+ "snapshot_taken_at": "2026-09-08",
+ "medications": [
+  {
+   "name": "Amlodipine",
+   "brand_name": "Norvasc",
+   "form": "Tablet",
+   "route": "oral",
+   "doses_per_day": 1,
+   "walmart_generics_program": true,
+   "strengths": [
+    {
+     "strength": "2.5mg",
+     "acquisition_unit_price_cents": 0.3,
+     "costplus": {
+      "ndc": "67877090010",
+      "slug": "amlodipine-2_5mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/amlodipine-2_5mg-tablet/"
+     }
+    },
+    {
+     "strength": "5mg",
+     "acquisition_unit_price_cents": 0.6,
+     "costplus": {
+      "ndc": "29300039710",
+      "slug": "amlodipine-5mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/amlodipine-5mg-tablet/"
+     }
+    },
+    {
+     "strength": "10mg",
+     "acquisition_unit_price_cents": 0.9,
+     "costplus": {
+      "ndc": "67877090210",
+      "slug": "amlodipine-10mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/amlodipine-10mg-tablet/"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Atorvastatin",
+   "brand_name": "Lipitor",
+   "form": "Tablet",
+   "route": "oral",
+   "doses_per_day": 1,
+   "walmart_generics_program": true,
+   "strengths": [
+    {
+     "strength": "10mg",
+     "acquisition_unit_price_cents": 0.73,
+     "costplus": {
+      "ndc": "67877051110",
+      "slug": "atorvastatin-10mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/atorvastatin-10mg-tablet/"
+     }
+    },
+    {
+     "strength": "20mg",
+     "acquisition_unit_price_cents": 1.19,
+     "costplus": {
+      "ndc": "67877051210",
+      "slug": "atorvastatin-20mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/atorvastatin-20mg-tablet/"
+     }
+    },
+    {
+     "strength": "40mg",
+     "acquisition_unit_price_cents": 1.95,
+     "costplus": {
+      "ndc": "67877051310",
+      "slug": "atorvastatin-40mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/atorvastatin-40mg-tablet/"
+     }
+    },
+    {
+     "strength": "80mg",
+     "acquisition_unit_price_cents": 3.47,
+     "costplus": {
+      "ndc": "67877051405",
+      "slug": "atorvastatin-80mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/atorvastatin-80mg-tablet/"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Carvedilol",
+   "brand_name": "Coreg",
+   "form": "Tablet",
+   "route": "oral",
+   "doses_per_day": 2,
+   "walmart_generics_program": true,
+   "strengths": [
+    {
+     "strength": "3.125mg",
+     "acquisition_unit_price_cents": 0.6,
+     "costplus": {
+      "ndc": "68382009205",
+      "slug": "carvedilol-3_125mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/carvedilol-3_125mg-tablet/"
+     }
+    },
+    {
+     "strength": "6.25mg",
+     "acquisition_unit_price_cents": 0.8,
+     "costplus": {
+      "ndc": "68382009305",
+      "slug": "carvedilol-6_25mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/carvedilol-6_25mg-tablet/"
+     }
+    },
+    {
+     "strength": "12.5mg",
+     "acquisition_unit_price_cents": 1,
+     "costplus": {
+      "ndc": "68382009405",
+      "slug": "carvedilol-12_5mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/carvedilol-12_5mg-tablet/"
+     }
+    },
+    {
+     "strength": "25mg",
+     "acquisition_unit_price_cents": 1.9,
+     "costplus": {
+      "ndc": "68382009505",
+      "slug": "carvedilol-25mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/carvedilol-25mg-tablet/"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Hydrochlorothiazide",
+   "brand_name": "Microzide",
+   "form": "Capsule",
+   "route": "oral",
+   "doses_per_day": 1,
+   "walmart_generics_program": true,
+   "strengths": [
+    {
+     "strength": "12.5mg",
+     "acquisition_unit_price_cents": 1.5,
+     "costplus": {
+      "ndc": "50228014601",
+      "slug": "hydrochlorothiazide-12_5mg-capsule",
+      "product_url": "https://www.costplusdrugs.com/medications/hydrochlorothiazide-12_5mg-capsule/"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Hydrochlorothiazide",
+   "brand_name": "Microzide",
+   "form": "Tablet",
+   "route": "oral",
+   "doses_per_day": 1,
+   "walmart_generics_program": true,
+   "strengths": [
+    {
+     "strength": "12.5mg",
+     "acquisition_unit_price_cents": 3.5,
+     "costplus": {
+      "ndc": "29300048501",
+      "slug": "Hydrochlorothiazide-12_5mg-Tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/Hydrochlorothiazide-12_5mg-Tablet/"
+     }
+    },
+    {
+     "strength": "25mg",
+     "acquisition_unit_price_cents": 0.7,
+     "costplus": {
+      "ndc": "29300012810",
+      "slug": "hydrochlorothiazide-25mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/hydrochlorothiazide-25mg-tablet/"
+     }
+    },
+    {
+     "strength": "50mg",
+     "acquisition_unit_price_cents": 0.99,
+     "costplus": {
+      "ndc": "65862013499",
+      "slug": "hydrochlorothiazide-50mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/hydrochlorothiazide-50mg-tablet/"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Levothyroxine",
+   "brand_name": "Synthroid",
+   "form": "Tablet",
+   "route": "oral",
+   "doses_per_day": 1,
+   "walmart_generics_program": false,
+   "strengths": [
+    {
+     "strength": "25mcg",
+     "acquisition_unit_price_cents": 2.6,
+     "costplus": {
+      "ndc": "68180096503",
+      "slug": "levothyroxine-25mcg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/levothyroxine-25mcg-tablet/"
+     }
+    },
+    {
+     "strength": "50mcg",
+     "acquisition_unit_price_cents": 2.7,
+     "costplus": {
+      "ndc": "68180096603",
+      "slug": "levothyroxine-50mcg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/levothyroxine-50mcg-tablet/"
+     }
+    },
+    {
+     "strength": "75mcg",
+     "acquisition_unit_price_cents": 2.7,
+     "costplus": {
+      "ndc": "68180096703",
+      "slug": "levothyroxine-75mcg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/levothyroxine-75mcg-tablet/"
+     }
+    },
+    {
+     "strength": "88mcg",
+     "acquisition_unit_price_cents": 2.7,
+     "costplus": {
+      "ndc": "68180096803",
+      "slug": "levothyroxine-88mcg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/levothyroxine-88mcg-tablet/"
+     }
+    },
+    {
+     "strength": "100mcg",
+     "acquisition_unit_price_cents": 3.2,
+     "costplus": {
+      "ndc": "68180096903",
+      "slug": "levothyroxine-100mcg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/levothyroxine-100mcg-tablet/"
+     }
+    },
+    {
+     "strength": "112mcg",
+     "acquisition_unit_price_cents": 3,
+     "costplus": {
+      "ndc": "68180097003",
+      "slug": "levothyroxine-112mcg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/levothyroxine-112mcg-tablet/"
+     }
+    },
+    {
+     "strength": "125mcg",
+     "acquisition_unit_price_cents": 3.1,
+     "costplus": {
+      "ndc": "68180097103",
+      "slug": "levothyroxine-125mcg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/levothyroxine-125mcg-tablet/"
+     }
+    },
+    {
+     "strength": "137mcg",
+     "acquisition_unit_price_cents": 3.1,
+     "costplus": {
+      "ndc": "68180097203",
+      "slug": "levothyroxine-137mcg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/levothyroxine-137mcg-tablet/"
+     }
+    },
+    {
+     "strength": "150mcg",
+     "acquisition_unit_price_cents": 3.2,
+     "costplus": {
+      "ndc": "68180097303",
+      "slug": "levothyroxine-150mcg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/levothyroxine-150mcg-tablet/"
+     }
+    },
+    {
+     "strength": "175mcg",
+     "acquisition_unit_price_cents": 4,
+     "costplus": {
+      "ndc": "68180097403",
+      "slug": "levothyroxine-175mcg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/levothyroxine-175mcg-tablet/"
+     }
+    },
+    {
+     "strength": "200mcg",
+     "acquisition_unit_price_cents": 4.1,
+     "costplus": {
+      "ndc": "68180097503",
+      "slug": "levothyroxine-200mcg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/levothyroxine-200mcg-tablet/"
+     }
+    },
+    {
+     "strength": "300mcg",
+     "acquisition_unit_price_cents": 2.8,
+     "costplus": {
+      "ndc": "16729045815",
+      "slug": "levothyroxine-300mcg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/levothyroxine-300mcg-tablet/"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Lisinopril",
+   "brand_name": "Prinivil",
+   "form": "Tablet",
+   "route": "oral",
+   "doses_per_day": 1,
+   "walmart_generics_program": true,
+   "strengths": [
+    {
+     "strength": "2.5mg",
+     "acquisition_unit_price_cents": 0.8,
+     "costplus": {
+      "ndc": "68180051202",
+      "slug": "lisinopril-2_5mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/lisinopril-2_5mg-tablet/"
+     }
+    },
+    {
+     "strength": "5mg",
+     "acquisition_unit_price_cents": 0.6,
+     "costplus": {
+      "ndc": "68180051303",
+      "slug": "lisinopril-5mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/lisinopril-5mg-tablet/"
+     }
+    },
+    {
+     "strength": "10mg",
+     "acquisition_unit_price_cents": 1.1,
+     "costplus": {
+      "ndc": "68180098003",
+      "slug": "lisinopril-10mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/lisinopril-10mg-tablet/"
+     }
+    },
+    {
+     "strength": "20mg",
+     "acquisition_unit_price_cents": 1.6,
+     "costplus": {
+      "ndc": "68180098103",
+      "slug": "lisinopril-20mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/lisinopril-20mg-tablet/"
+     }
+    },
+    {
+     "strength": "30mg",
+     "acquisition_unit_price_cents": 2.3,
+     "costplus": {
+      "ndc": "68180098202",
+      "slug": "lisinopril-30mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/lisinopril-30mg-tablet/"
+     }
+    },
+    {
+     "strength": "40mg",
+     "acquisition_unit_price_cents": 1.9,
+     "costplus": {
+      "ndc": "68180097903",
+      "slug": "lisinopril-40mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/lisinopril-40mg-tablet/"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Losartan",
+   "brand_name": "Cozaar",
+   "form": "Tablet",
+   "route": "oral",
+   "doses_per_day": 1,
+   "walmart_generics_program": true,
+   "strengths": [
+    {
+     "strength": "25mg",
+     "acquisition_unit_price_cents": 1.2,
+     "costplus": {
+      "ndc": "65862020199",
+      "slug": "losartan-25mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/losartan-25mg-tablet/"
+     }
+    },
+    {
+     "strength": "50mg",
+     "acquisition_unit_price_cents": 1.5,
+     "costplus": {
+      "ndc": "65862020299",
+      "slug": "losartan-50mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/losartan-50mg-tablet/"
+     }
+    },
+    {
+     "strength": "100mg",
+     "acquisition_unit_price_cents": 2.3,
+     "costplus": {
+      "ndc": "65862020399",
+      "slug": "losartan-100mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/losartan-100mg-tablet/"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Metformin",
+   "brand_name": "Glucophage",
+   "form": "Tablet",
+   "route": "oral",
+   "doses_per_day": 2,
+   "walmart_generics_program": true,
+   "strengths": [
+    {
+     "strength": "500mg",
+     "acquisition_unit_price_cents": 0.9,
+     "costplus": {
+      "ndc": "67877093010",
+      "slug": "metformin-500mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/metformin-500mg-tablet/"
+     }
+    },
+    {
+     "strength": "850mg",
+     "acquisition_unit_price_cents": 1.6,
+     "costplus": {
+      "ndc": "67877056210",
+      "slug": "metformin-850mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/metformin-850mg-tablet/"
+     }
+    },
+    {
+     "strength": "1000mg",
+     "acquisition_unit_price_cents": 1.7,
+     "costplus": {
+      "ndc": "67877093210",
+      "slug": "metformin-1000mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/metformin-1000mg-tablet/"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Metoprolol Tartrate",
+   "brand_name": "Lopressor",
+   "form": "Tablet",
+   "route": "oral",
+   "doses_per_day": 2,
+   "walmart_generics_program": true,
+   "strengths": [
+    {
+     "strength": "25mg",
+     "acquisition_unit_price_cents": 0.82,
+     "costplus": {
+      "ndc": "52817025000",
+      "slug": "metoprolol-tartrate-25mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/metoprolol-tartrate-25mg-tablet/"
+     }
+    },
+    {
+     "strength": "37.5mg",
+     "acquisition_unit_price_cents": 7.1,
+     "costplus": {
+      "ndc": "72888010101",
+      "slug": "metoprolol-tartrate-37_5mg-tablet-lopressor",
+      "product_url": "https://www.costplusdrugs.com/medications/metoprolol-tartrate-37_5mg-tablet-lopressor/"
+     }
+    },
+    {
+     "strength": "50mg",
+     "acquisition_unit_price_cents": 1.3,
+     "costplus": {
+      "ndc": "52817025200",
+      "slug": "metoprolol-tartrate-50mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/metoprolol-tartrate-50mg-tablet/"
+     }
+    },
+    {
+     "strength": "75mg",
+     "acquisition_unit_price_cents": 9.9,
+     "costplus": {
+      "ndc": "52817035910",
+      "slug": "metoprolol-tartrate-75mg-tablet-lopressor",
+      "product_url": "https://www.costplusdrugs.com/medications/metoprolol-tartrate-75mg-tablet-lopressor/"
+     }
+    },
+    {
+     "strength": "100mg",
+     "acquisition_unit_price_cents": 1.5,
+     "costplus": {
+      "ndc": "52817025400",
+      "slug": "metoprolol-100mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/metoprolol-100mg-tablet/"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Montelukast",
+   "brand_name": "Singulair",
+   "form": "Tablet",
+   "route": "oral",
+   "doses_per_day": 1,
+   "walmart_generics_program": false,
+   "strengths": [
+    {
+     "strength": "10mg",
+     "acquisition_unit_price_cents": 2.07,
+     "costplus": {
+      "ndc": "29300022010",
+      "slug": "montelukast-10mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/montelukast-10mg-tablet/"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Rosuvastatin",
+   "brand_name": "Crestor",
+   "form": "Tablet",
+   "route": "oral",
+   "doses_per_day": 1,
+   "walmart_generics_program": false,
+   "strengths": [
+    {
+     "strength": "5mg",
+     "acquisition_unit_price_cents": 1.3,
+     "costplus": {
+      "ndc": "65862029399",
+      "slug": "rosuvastatin-5mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/rosuvastatin-5mg-tablet/"
+     }
+    },
+    {
+     "strength": "10mg",
+     "acquisition_unit_price_cents": 1.9,
+     "costplus": {
+      "ndc": "65862029499",
+      "slug": "rosuvastatin-10mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/rosuvastatin-10mg-tablet/"
+     }
+    },
+    {
+     "strength": "20mg",
+     "acquisition_unit_price_cents": 2.8,
+     "costplus": {
+      "ndc": "65862029599",
+      "slug": "rosuvastatin-20mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/rosuvastatin-20mg-tablet/"
+     }
+    },
+    {
+     "strength": "40mg",
+     "acquisition_unit_price_cents": 5.3,
+     "costplus": {
+      "ndc": "65862029699",
+      "slug": "rosuvastatin-40mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/rosuvastatin-40mg-tablet/"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Sertraline",
+   "brand_name": null,
+   "form": "Capsule",
+   "route": "oral",
+   "doses_per_day": 1,
+   "walmart_generics_program": true,
+   "strengths": [
+    {
+     "strength": "150mg",
+     "acquisition_unit_price_cents": 49.97,
+     "costplus": {
+      "ndc": "69097043802",
+      "slug": "sertraline-150mg-capsule",
+      "product_url": "https://www.costplusdrugs.com/medications/sertraline-150mg-capsule/"
+     }
+    },
+    {
+     "strength": "200mg",
+     "acquisition_unit_price_cents": 50,
+     "costplus": {
+      "ndc": "70377012911",
+      "slug": "sertraline-200mg-capsule",
+      "product_url": "https://www.costplusdrugs.com/medications/sertraline-200mg-capsule/"
+     }
+    }
+   ]
+  },
+  {
+   "name": "Sertraline",
+   "brand_name": "Zoloft",
+   "form": "Tablet",
+   "route": "oral",
+   "doses_per_day": 1,
+   "walmart_generics_program": true,
+   "strengths": [
+    {
+     "strength": "25mg",
+     "acquisition_unit_price_cents": 1.9,
+     "costplus": {
+      "ndc": "65862001105",
+      "slug": "sertraline-25mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/sertraline-25mg-tablet/"
+     }
+    },
+    {
+     "strength": "50mg",
+     "acquisition_unit_price_cents": 2,
+     "costplus": {
+      "ndc": "65862001205",
+      "slug": "sertraline-50mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/sertraline-50mg-tablet/"
+     }
+    },
+    {
+     "strength": "100mg",
+     "acquisition_unit_price_cents": 3,
+     "costplus": {
+      "ndc": "65862001305",
+      "slug": "sertraline-100mg-tablet",
+      "product_url": "https://www.costplusdrugs.com/medications/sertraline-100mg-tablet/"
+     }
+    }
+   ]
+  }
+ ]
+}
