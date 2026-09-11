@@ -1,6 +1,6 @@
 # HouseMeds
 
-Medication catalog and pricing backend with a read-only CLI assistant. Backend files live in [`backend/`](backend/); documentation lives in [`docs/`](docs/).
+Medication catalog and pricing backend with a read-only CLI assistant and a prototype price-comparison web UI. Backend files live in [`backend/`](backend/); documentation lives in [`docs/`](docs/).
 
 The [HTML technical plan](docs/housemed-technical-plan.html) is the source of truth for architecture, implementation status, and MVP acceptance criteria. This README covers running the backend.
 
@@ -9,7 +9,7 @@ The [HTML technical plan](docs/housemed-technical-plan.html) is the source of tr
 Open Terminal and enter the backend directory:
 
 ```bash
-cd /Users/qklu/Documents/HouseMed/backend
+cd /Users/qklu/Documents/HouseMeds/backend
 ```
 
 All commands below run from that directory. For a clone elsewhere, use that checkout's `backend/` directory.
@@ -44,6 +44,104 @@ npm run ask -- --json "Show collection coverage and the last successful collecti
 
 The assistant reads stored price observations. Prices depend on quantity, and Cost Plus estimates require explicit opt-in, as shown above. Background crawling is currently paused and the recurring Codex automation has been deleted. Asking a question does not refresh pharmacy prices; observations can become unavailable when they age beyond the freshness window.
 
+## Pricing questions the data can answer
+
+HouseMeds stores each observed quantity and total price as a separate offer. It can compare exact quantity tiers across pharmacies when the source listings have been reviewed and linked to the same canonical medication, strength, form, route, and release type.
+
+| Question | Support today |
+| --- | --- |
+| What does 30, 90, or 180 tablets cost? | Yes, if that exact quantity was collected for the listing. |
+| What is the price per pill? | It can be calculated from the response, but is not a stored field or an explicit API field. |
+| Which pharmacy is cheaper? | Yes, for listings verified as the same medication identity. |
+| Can I submit one list for a whole family? | Not in one request. There is no patient, household, saved medication-list, or batch-quote API yet. Query each medication separately. |
+| Can I read historical prices? | The database retains offer history, but the read API does not expose it yet. |
+
+An offer has an `ordering_quantity`, a listing has a `content_quantity` and `content_unit`, and the API returns their product as `physical_quantity`:
+
+```text
+physical_quantity = ordering_quantity * content_quantity
+price_per_unit_usd = price_cents / 100 / physical_quantity
+```
+
+For a loose tablet, `content_quantity` is normally `1`, so an offer with `ordering_quantity: "90"`, `physical_quantity: "90"`, and `price_cents: "1260"` costs $12.60 total or $0.14 per tablet. Use the returned `content_unit` in the label: a quote might be per tablet, capsule, milliliter, or gram, so “per pill” is not always correct.
+
+HouseMeds does not scale a 30-count price to estimate an unobserved 90- or 180-count price. It returns only an exact collected quantity. By default, offers also must be active, in stock, unexpired, and observed within the last 24 hours. Cost Plus prices with unconfirmed stock are excluded unless the caller explicitly sets `include_estimates=true`; those results remain labeled as requiring purchase verification.
+
+For the hackathon, a family medication list should be processed ephemerally by making one exact-quantity query per medication. Do not attach names or family relationships to the requests. Persisting patient or household information would require a deliberate privacy, consent, retention, and access-control design that is outside the current schema.
+
+## Use the database-backed read API
+
+The API is read-only. It is available locally at `http://127.0.0.1:63813` and is deployed at `https://housemeds-api-jg3hpr52da-uw.a.run.app`. Every route requires the bearer token configured as `HOUSEMED_API_TOKEN`. Obtain the token through the team's approved secret-sharing process and put it in your environment; never commit it or paste it into documentation.
+
+The examples below assume these variables are already set:
+
+```bash
+export HOUSEMED_API_URL=https://housemeds-api-jg3hpr52da-uw.a.run.app
+test -n "$HOUSEMED_API_TOKEN" || echo "Set HOUSEMED_API_TOKEN first"
+```
+
+### Available routes
+
+| Route | Purpose |
+| --- | --- |
+| `GET /v1/sources/status` | Collection status, catalog counts, and fresh/stale offer counts by source. |
+| `GET /v1/medications` | Search canonical medication identities by name. |
+| `GET /v1/listings` | Search pharmacy-specific product listings. |
+| `GET /v1/medications/:id/offers` | Compare eligible offers across verified listings for one medication. |
+| `GET /v1/listings/:id/offers` | Read eligible quantity tiers for one pharmacy listing. |
+
+All requests use the same authorization header:
+
+```bash
+curl --fail-with-body --silent --show-error \
+  --header "Authorization: Bearer ${HOUSEMED_API_TOKEN:?Set HOUSEMED_API_TOKEN}" \
+  "$HOUSEMED_API_URL/v1/sources/status"
+```
+
+Search for the canonical medication first. Search by medication name, then select the ID whose strength and form match the request:
+
+```bash
+curl --fail-with-body --silent --show-error --get \
+  --header "Authorization: Bearer ${HOUSEMED_API_TOKEN:?Set HOUSEMED_API_TOKEN}" \
+  --data-urlencode "q=lisinopril" \
+  "$HOUSEMED_API_URL/v1/medications"
+```
+
+Use that `id` to request an exact physical quantity. Omitting `source` compares every configured pharmacy with a verified match:
+
+```bash
+MEDICATION_ID=1
+
+curl --fail-with-body --silent --show-error --get \
+  --header "Authorization: Bearer ${HOUSEMED_API_TOKEN:?Set HOUSEMED_API_TOKEN}" \
+  --data-urlencode "quantity=90" \
+  --data-urlencode "unit=tablet" \
+  --data-urlencode "include_estimates=true" \
+  "$HOUSEMED_API_URL/v1/medications/$MEDICATION_ID/offers"
+```
+
+`quantity` and `unit` must be supplied together. Valid optional filters are `source` (`healthwarehouse` or `costplus`), `location`, `program`, and `include_estimates`. List routes also accept `limit` and `cursor`; pass a non-null `next_cursor` into the next request to continue pagination.
+
+To see all currently eligible quantity tiers for one source listing, search the source catalog and then omit quantity from the listing-offers request:
+
+```bash
+curl --fail-with-body --silent --show-error --get \
+  --header "Authorization: Bearer ${HOUSEMED_API_TOKEN:?Set HOUSEMED_API_TOKEN}" \
+  --data-urlencode "q=lisinopril" \
+  --data-urlencode "source=healthwarehouse" \
+  "$HOUSEMED_API_URL/v1/listings"
+
+LISTING_ID=1
+
+curl --fail-with-body --silent --show-error \
+  --header "Authorization: Bearer ${HOUSEMED_API_TOKEN:?Set HOUSEMED_API_TOKEN}" \
+  "$HOUSEMED_API_URL/v1/listings/$LISTING_ID/offers"
+```
+
+The IDs above are examples; always use IDs returned by the search response. `price_cents` is the total price as an integer-cent string, not a per-unit price. `ordering_quantity` is the number of source products ordered, while `physical_quantity` is the number of tablets, capsules, milliliters, or other `content_unit` received.
+
+Check `quote_status` before presenting a result. An empty `items` array is explained by `exclusions`, for example `unsupported_quantity`, `not_matched`, `out_of_stock`, or `stale_or_expired`. HTTP `400` means invalid parameters, `401` means missing or incorrect credentials, `404` means the requested ID does not exist, and `503` means the API or database is temporarily unavailable.
+
 ## Price-comparison web UI
 
 A browser page that takes a medication name and shows 30-, 90- and 365-day cash prices at Walmart,
@@ -56,7 +154,9 @@ npm run web
 Then open <http://127.0.0.1:63814/>. It needs no database and no token, so it runs on a fresh
 checkout; the read API on port `63813` is unaffected.
 
-### API
+This prototype is separate from the database-backed read API documented above. Its price-comparison data is currently a mock snapshot, not a live view of the collected `pricing.offers` rows.
+
+### Mock UI API
 
 | Route | Purpose |
 | --- | --- |
