@@ -45,6 +45,7 @@ export class MockPricingClient implements PricingClient {
         total = Math.round(request.quantity * unitPrice * 100) / 100;
       return {
         medicineLineId: request.medicineLineId,
+        requestedMedicationId: request.medicationId,
         medicationId: request.medicationId,
         name: `${medication.name.charAt(0).toUpperCase() + medication.name.slice(1)} ${medication.strength} ${medication.form}`,
         genericName: medication.name,

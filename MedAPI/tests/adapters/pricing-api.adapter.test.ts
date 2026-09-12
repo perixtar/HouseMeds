@@ -118,6 +118,7 @@ describe('PricingApiAdapter canonical contract', () => {
     expect(quotes).toEqual([
       {
         medicineLineId: 'line-1',
+        requestedMedicationId: '314077',
         medicationId: '314077',
         name: 'lisinopril 20 MG Oral Tablet',
         genericName: 'lisinopril',
@@ -128,6 +129,41 @@ describe('PricingApiAdapter canonical contract', () => {
         total: 6.66,
       },
     ]);
+  });
+
+  it('authenticates a superseded-id resolution and returns the active canonical id', async () => {
+    const origin = await serve((url) => {
+      expect(url.pathname).toBe('/v1/medications/7/offers');
+      return {
+        requested_medication_id: '7',
+        resolved_medication_id: '314077',
+        medication: {
+          id: '314077',
+          name: 'lisinopril',
+          canonical_name: 'lisinopril 20 MG Oral Tablet',
+          strength: '20 mg',
+          form: 'tablet',
+          normalization_status: 'verified',
+        },
+        quote_status: 'available',
+        items: [{ price_cents: '666', physical_quantity: '90', content_unit: 'tablet' }],
+      };
+    });
+    const [quote] = await new PricingApiAdapter({
+      baseUrl: origin,
+      apiKey: 'test-pricing-token',
+    }).getLatestPrices([
+      {
+        medicineLineId: 'line-1',
+        medicationId: '7',
+        quantity: 90,
+        quantityUnit: 'tablet',
+      },
+    ]);
+    expect(quote).toBeDefined();
+    if (!quote) throw Error('QUOTE_MISSING');
+    expect(quote.requestedMedicationId).toBe('7');
+    expect(quote.medicationId).toBe('314077');
   });
 
   it('fails closed when no eligible exact quote is returned', async () => {

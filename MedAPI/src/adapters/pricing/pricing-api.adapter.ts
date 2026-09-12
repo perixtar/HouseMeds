@@ -33,6 +33,8 @@ interface PricingOffer {
 }
 interface PricingApiResponse {
   medication: PricingMedication;
+  requested_medication_id?: string;
+  resolved_medication_id?: string;
   items: PricingOffer[];
   quote_status: string;
 }
@@ -131,8 +133,11 @@ export class PricingApiAdapter implements PricingClient {
     });
     if (!response.ok) throw Error(`Pricing API responded with status ${response.status}`);
     const body = (await response.json()) as PricingApiResponse;
+    const requestedId = body.requested_medication_id ?? request.medicationId,
+      resolvedId = body.resolved_medication_id ?? body.medication?.id;
     if (
-      body.medication?.id !== request.medicationId ||
+      requestedId !== request.medicationId ||
+      resolvedId !== body.medication?.id ||
       !Array.isArray(body.items) ||
       body.items.length === 0
     )
@@ -158,6 +163,7 @@ export class PricingApiAdapter implements PricingClient {
       unitPrice = Math.round((total / request.quantity) * 10000) / 10000;
     return {
       medicineLineId: request.medicineLineId,
+      requestedMedicationId: request.medicationId,
       medicationId: body.medication.id,
       name:
         body.medication.canonical_name ??

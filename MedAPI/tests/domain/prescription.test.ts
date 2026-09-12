@@ -11,6 +11,7 @@ import type { Medicine, Member, PrescriptionHousehold } from '../../src/domain/t
 function medicine(overrides: Partial<Medicine> = {}): Medicine {
   return {
     id: 'med-1',
+    normalizationStatus: 'verified',
     medicationId: '1',
     name: 'Amoxicillin',
     genericName: 'amoxicillin',
