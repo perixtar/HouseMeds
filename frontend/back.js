@@ -13,6 +13,8 @@
     const current = document.querySelector('.screen.active')?.id;
     const destination = current === 'meds' ? 'choose' : current === 'detail' ? 'deals' : 'house';
     screens.forEach(screen => screen.classList.toggle('active', screen.id === destination));
+    // The picker includes each member's medicine count, so refresh it before showing it.
+    if (destination === 'choose' && typeof renderChoices === 'function') renderChoices();
     updateBackButton();
     window.scrollTo(0, 0);
   });
