@@ -1,15 +1,87 @@
-const state={members:['Grandma','Alex'],medicines:{Grandma:[{name:'Sertraline 100mg',brand:'Zoloft · 1 tablet, once daily'}],Alex:[]},selected:'Grandma'};
-const $=s=>document.querySelector(s);const $$=s=>document.querySelectorAll(s);
-function renderMembers(){const list=$('#memberList');list.innerHTML=state.members.map((m,i)=>`<div class="member"><span>${m[0]}</span>${m}<button data-remove="${i}" aria-label="Remove ${m}">×</button></div>`).join('');$('#membersNext').disabled=!state.members.length;}
-function renderChoices(){ $('#personChoices').innerHTML=state.members.map(m=>`<button class="person-choice" data-person="${m}"><span class="avatar">${m[0]}</span><span><b>${m}</b><small>${state.medicines[m].length?state.medicines[m].length+' medicine'+(state.medicines[m].length>1?'s':''):'No medicines yet'}</small></span><i>›</i></button>`).join(''); }
-function renderMeds(){const m=state.selected;$('#medsTitle').textContent=m+'’s';$('#medsEyebrow').textContent=m.toUpperCase()+' · MEDICINES';const meds=state.medicines[m];$('#medicineList').innerHTML=meds.length?meds.map(x=>`<div class="medicine"><span class="pill">▰</span><span><b>${x.name}</b><small>${x.brand}</small></span><span style="margin-left:auto">›</span></div>`).join(''):'<p class="lede" style="margin:22px 0">No medicines added yet. Add one manually or let the assistant scan a prescription.</p>';}
-function renderDeals(){let all=state.members.flatMap(person=>state.medicines[person].map(x=>({...x,person})));if(!all.length)all=[{name:'Sertraline 100mg',brand:'Zoloft',person:'Grandma'}];$('#dealList').innerHTML=all.map((x,i)=>`<button class="deal" data-deal="${i}"><span class="deal-icon">▰</span><span><b>${x.name}</b><small>${x.person} · save $${i?112:370}/year</small></span><span class="price">From $${i?9:12}.40<br><small>/ 90 days</small></span></button>`).join('');}
-function go(id){$$('.screen').forEach(s=>s.classList.toggle('active',s.id===id));window.scrollTo(0,0);}
-function openModal(id){$(id).classList.add('show');$(id).setAttribute('aria-hidden','false')}function closeModals(){$$('.modal').forEach(x=>{x.classList.remove('show');x.setAttribute('aria-hidden','true')})}function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2600)}
-$('#memberForm').addEventListener('submit',e=>{e.preventDefault();const input=$('#memberName'),name=input.value.trim();if(name&&!state.members.includes(name)){state.members.push(name);state.medicines[name]=[];renderMembers();input.value='';}else if(name)toast('That person is already in your house.');});
-$('#memberList').addEventListener('click',e=>{if(e.target.dataset.remove!==undefined){const m=state.members.splice(+e.target.dataset.remove,1)[0];delete state.medicines[m];renderMembers();}});$('#membersNext').onclick=()=>{renderChoices();go('choose')};$('#personChoices').addEventListener('click',e=>{const b=e.target.closest('[data-person]');if(b){state.selected=b.dataset.person;renderMeds();go('meds')}});$('#chooseNext').onclick=()=>{renderDeals();go('deals')};
-$('#showMedicineForm').onclick=()=>openModal('#medicineModal');$('#openAssistant').onclick=()=>openModal('#assistantModal');$('#helpButton').onclick=()=>openModal('#assistantModal');$$('.modal-close').forEach(x=>x.onclick=closeModals);$$('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModals()}));
-$('#medicineForm').addEventListener('submit',e=>{e.preventDefault();const name=$('#medicineName').value.trim(),dose=$('#dosage').value.trim();state.medicines[state.selected].push({name,brand:dose});renderMeds();closeModals();e.target.reset();toast('Medicine added to '+state.selected+'’s list.');});
-$('#getDeals').onclick=()=>{renderDeals();go('deals')};$('#dealList').addEventListener('click',e=>{const btn=e.target.closest('[data-deal]');if(btn){const all=state.members.flatMap(person=>state.medicines[person].map(x=>({...x,person})));const d=all[+btn.dataset.deal]||{name:'Sertraline 100mg',person:'Grandma'};$('#detailName').textContent=d.name;$('#detailPerson').textContent=d.person.toUpperCase();go('detail')}});$('[data-go="deals"]').onclick=()=>go('deals');$('#selectDeal').onclick=()=>toast('Deal selected — we’ll help with the next steps.');
-const starter=[['Add members to my house','Who would you like to add? You can type names, nicknames, or a simple list.'],['Add medicine from a picture','Attach a prescription photo or medication list. I’ll pull out the details and ask who it belongs to.'],['Question about medicine','I can use the medicines in your house as context. What would you like to know?']];function message(text,user=false){const d=document.createElement('div');d.className='message'+(user?' user':'');d.textContent=text;$('#chatMessages').append(d);d.scrollIntoView({block:'nearest'});}function resetChat(){ $('#chatMessages').innerHTML='';message('Hi! I can help you set up your house, add prescriptions from a photo, or answer a medicine question.');$('#starterChoices').innerHTML=starter.map(([a])=>`<button class="starter" data-starter="${a}">${a} <span style="float:right">›</span></button>`).join('');}resetChat();$('#starterChoices').onclick=e=>{const b=e.target.closest('[data-starter]');if(!b)return;const pair=starter.find(x=>x[0]===b.dataset.starter);message(pair[0],true);message(pair[1]);$('#starterChoices').innerHTML='';};$('#chatForm').addEventListener('submit',e=>{e.preventDefault();const i=$('#chatText');if(i.value.trim()){message(i.value,true);setTimeout(()=>message('I can help with that. For this prototype, try “Add medicine from a picture” to see the guided flow.'),350);i.value='';}});$('#attach').onclick=()=>{message('I attached a prescription image.',true);setTimeout(()=>message('I found Sertraline 100mg, 1 tablet once daily. Which household member should I assign it to?'),350)};
-renderMembers();
+const $ = selector => document.querySelector(selector);
+const $$ = selector => document.querySelectorAll(selector);
+const state = { house: null, members: [], selectedMemberId: null, deals: [] };
+
+const selectedMember = () => state.members.find(member => member.id === state.selectedMemberId);
+const displayMedication = prescription => `${prescription.medication.name}${prescription.medication.strength ? ` ${prescription.medication.strength.amount} ${prescription.medication.strength.unit}` : ''}`;
+const displayDose = prescription => `${prescription.dose.amount} ${prescription.dose.unit}, ${prescription.frequency.replaceAll('_', ' ')}`;
+const medicineCount = member => member.prescriptions.length ? `${member.prescriptions.length} medicine${member.prescriptions.length === 1 ? '' : 's'}` : 'No medicines yet';
+
+async function refreshHousehold() {
+  const result = await HouseholdApi.getHousehold();
+  state.house = result.house;
+  state.members = result.members;
+  if (!state.selectedMemberId && state.members.length) state.selectedMemberId = state.members[0].id;
+}
+
+function renderMembers() {
+  $('#memberList').innerHTML = state.members.map(member => `<div class="member"><span>${member.name[0]}</span>${member.name}<button data-remove-id="${member.id}" aria-label="Remove ${member.name}">×</button></div>`).join('');
+  $('#membersNext').disabled = !state.members.length;
+}
+
+function renderChoices() {
+  $('#personChoices').innerHTML = state.members.map(member => `<button class="person-choice" data-person-id="${member.id}"><span class="avatar">${member.name[0]}</span><span><b>${member.name}</b><small>${medicineCount(member)}</small></span><i>›</i></button>`).join('');
+}
+
+function renderMeds() {
+  const member = selectedMember();
+  if (!member) return;
+  $('#medsTitle').textContent = `${member.name}’s`;
+  $('#medsEyebrow').textContent = `${member.name.toUpperCase()} · MEDICINES`;
+  $('#medicineList').innerHTML = member.prescriptions.length
+    ? member.prescriptions.map(prescription => `<div class="medicine"><span class="pill">▰</span><span><b>${displayMedication(prescription)}</b><small>${displayDose(prescription)}</small></span><span style="margin-left:auto">›</span></div>`).join('')
+    : '<p class="lede" style="margin:22px 0">No medicines added yet. Add one manually or let the assistant scan a prescription.</p>';
+}
+
+async function renderDeals() {
+  const result = await HouseholdApi.getDeals(state.house.id);
+  state.deals = result.items;
+  $('#dealList').innerHTML = result.items.map((deal, index) => `<button class="deal" data-deal="${index}"><span class="deal-icon">▰</span><span><b>${deal.medication_name}${deal.strength ? ` ${deal.strength.amount}${deal.strength.unit}` : ''}</b><small>${deal.member_name} · save $${(deal.annual_savings_cents / 100).toFixed(0)}/year</small></span><span class="price">From $${(deal.best_offer.price_cents / 100).toFixed(2)}<br><small>/ ${deal.best_offer.days_supply} days</small></span></button>`).join('');
+  $('#deals .savings-card strong').textContent = `$${(result.estimated_annual_savings_cents / 100).toFixed(0)}`;
+}
+
+function go(id) { $$('.screen').forEach(screen => screen.classList.toggle('active', screen.id === id)); window.scrollTo(0, 0); }
+function openModal(id) { $(id).classList.add('show'); $(id).setAttribute('aria-hidden', 'false'); }
+function closeModals() { $$('.modal').forEach(modal => { modal.classList.remove('show'); modal.setAttribute('aria-hidden', 'true'); }); }
+function toast(text) { const el = $('#toast'); el.textContent = text; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2600); }
+function showError(error) { toast(error.message === 'Failed to fetch' ? 'The HouseMeds service is not running.' : 'Something went wrong. Please try again.'); }
+
+$('#memberForm').addEventListener('submit', async event => {
+  event.preventDefault(); const input = $('#memberName'); const name = input.value.trim(); if (!name) return;
+  try { await HouseholdApi.createMember(state.house.id, name); await refreshHousehold(); renderMembers(); input.value = ''; }
+  catch (error) { showError(error); }
+});
+$('#memberList').addEventListener('click', async event => {
+  const button = event.target.closest('[data-remove-id]'); if (!button) return;
+  try { await HouseholdApi.deleteMember(button.dataset.removeId); await refreshHousehold(); renderMembers(); }
+  catch (error) { showError(error); }
+});
+$('#membersNext').onclick = () => { renderChoices(); go('choose'); };
+$('#personChoices').addEventListener('click', event => { const choice = event.target.closest('[data-person-id]'); if (!choice) return; state.selectedMemberId = choice.dataset.personId; renderMeds(); go('meds'); });
+$('#chooseNext').onclick = async () => { try { await renderDeals(); go('deals'); } catch (error) { showError(error); } };
+
+$('#showMedicineForm').onclick = () => openModal('#medicineModal');
+$('#openAssistant').onclick = () => openModal('#assistantModal');
+$('#helpButton').onclick = () => openModal('#assistantModal');
+$$('.modal-close').forEach(button => button.onclick = closeModals);
+$$('.modal').forEach(modal => modal.addEventListener('click', event => { if (event.target === modal) closeModals(); }));
+$('#medicineForm').addEventListener('submit', async event => {
+  event.preventDefault(); const name = $('#medicineName').value.trim(); if (!name) return;
+  const payload = { medication: { name, strength: null, form: 'tablet' }, dose: { amount: 1, unit: 'tablet' }, frequency: 'once_daily', fulfillment: { pharmacy: $('#pharmacy').value.trim() || null, quantity: { amount: Number.parseInt($('#quantity').value, 10) || 30, unit: 'days' }, refills: Number.parseInt($('#refills').value, 10) || 1 } };
+  try { await HouseholdApi.createPrescription(state.selectedMemberId, payload); await refreshHousehold(); renderMeds(); closeModals(); event.target.reset(); toast(`Medicine added to ${selectedMember().name}’s list.`); }
+  catch (error) { showError(error); }
+});
+$('#getDeals').onclick = async () => { try { await renderDeals(); go('deals'); } catch (error) { showError(error); } };
+$('#dealList').addEventListener('click', event => { const button = event.target.closest('[data-deal]'); if (!button) return; const deal = state.deals[button.dataset.deal]; $('#detailName').textContent = `${deal.medication_name}${deal.strength ? ` ${deal.strength.amount}${deal.strength.unit}` : ''}`; $('#detailPerson').textContent = deal.member_name.toUpperCase(); go('detail'); });
+$('#selectDeal').onclick = () => toast('Deal selected — we’ll help with the next steps.');
+$('[data-go="deals"]').onclick = () => go('deals');
+
+const starter = [['Add members to my house', 'Who would you like to add? You can type names, nicknames, or a simple list.'], ['Add medicine from a picture', 'Attach a prescription photo or medication list. I’ll pull out the details and ask who it belongs to.'], ['Question about medicine', 'I can use the medicines in your house as context. What would you like to know?']];
+function message(text, user = false) { const item = document.createElement('div'); item.className = `message${user ? ' user' : ''}`; item.textContent = text; $('#chatMessages').append(item); item.scrollIntoView({ block: 'nearest' }); }
+function resetChat() { message('Hi! I can help you set up your house, add prescriptions from a photo, or answer a medicine question.'); $('#starterChoices').innerHTML = starter.map(([label]) => `<button class="starter" data-starter="${label}">${label} <span style="float:right">›</span></button>`).join(''); }
+resetChat();
+$('#starterChoices').onclick = event => { const button = event.target.closest('[data-starter]'); if (!button) return; const item = starter.find(([label]) => label === button.dataset.starter); message(item[0], true); message(item[1]); $('#starterChoices').innerHTML = ''; };
+$('#chatForm').addEventListener('submit', event => { event.preventDefault(); const input = $('#chatText'); if (!input.value.trim()) return; message(input.value, true); setTimeout(() => message('I can help with that. For this prototype, try “Add medicine from a picture” to see the guided flow.'), 350); input.value = ''; });
+$('#attach').onclick = () => { message('I attached a prescription image.', true); setTimeout(() => message('I found Sertraline 100mg, 1 tablet once daily. Which household member should I assign it to?'), 350); };
+
+refreshHousehold().then(renderMembers).catch(showError);
