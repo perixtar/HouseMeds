@@ -28,13 +28,18 @@
     "e2e:agent": "tsx scripts/e2e-agent.ts",
     "e2e:agent:live": "tsx scripts/e2e-agent-live.mjs",
     "e2e:normalization": "node scripts/prepare-test-db.mjs && tsx scripts/e2e-incoming-normalization.ts",
-    "e2e:normalization:live": "tsx scripts/e2e-normalization-live.ts"
+    "e2e:normalization:live": "tsx scripts/e2e-normalization-live.ts",
+    "prescriptions:api": "tsx src/prescription-api-server.ts",
+    "prescriptions:bundle": "esbuild src/prescription-lambda.ts --bundle --platform=node --target=node24 --format=cjs --outfile=.cache/prescription-lambda/index.cjs"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-agentcore": "^3.1131.0",
+    "@aws-sdk/credential-providers": "^3.1131.0",
     "@modelcontextprotocol/sdk": "1.30.0",
     "cheerio": "1.2.0",
     "decimal.js": "10.6.0",
     "fastify": "5.12.3",
+    "heic-to": "^1.5.2",
     "pg": "8.23.0",
     "playwright": "1.63.0",
     "robots-parser": "3.0.1",
@@ -43,6 +48,7 @@
   },
   "devDependencies": {
     "@types/pg": "8.23.1",
+    "esbuild": "0.28.2",
     "supabase": "2.116.0",
     "tsx": "4.23.13",
     "typescript": "7.0.2"

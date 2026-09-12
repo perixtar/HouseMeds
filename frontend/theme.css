@@ -84,3 +84,23 @@ h2 {
   height: 94dvh;
   max-height: 94dvh;
 }
+
+[hidden] { display: none !important; }
+button:disabled { opacity: .55; cursor: wait; }
+.member-list { margin-top: 22px; }
+.member-list .member { width: 100%; gap: 12px; justify-content: flex-start; cursor: pointer; }
+.review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+label select, label textarea { display: block; width: 100%; padding: 12px; margin-top: 5px; border: 1px solid var(--line); border-radius: 11px; background: white; color: var(--ink); font: inherit; }
+.hint { font-size: 12px; color: var(--muted); }
+#attachment { display: flex; gap: 8px; align-items: center; font-size: 12px; padding-top: 8px; }
+#attachment img { width: 42px; height: 48px; object-fit: cover; border-radius: 5px; }
+#attachment span { flex: 1; overflow-wrap: anywhere; }
+#attachment button { border: 0; background: transparent; font-size: 22px; }
+.message { white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-messages { display: flex; flex-direction: column; min-height: 100px; }
+.message.user { align-self: flex-end; }
+.assistant-sheet { height: 94dvh; }
+#chatActions { flex-shrink: 0; max-height: 150px; overflow: auto; }
+#chatStatus { margin: 6px 0 0; min-height: 18px; }
+#reviewStatus { color: var(--green); }
+.saved-badge { margin-left: auto; color: var(--green); font-size: 12px; }

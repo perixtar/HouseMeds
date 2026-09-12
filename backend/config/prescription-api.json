@@ -1,0 +1,8 @@
+{
+  "api_url": "https://wls55lfzyeen7y7t53gyig3ium0ovdrn.lambda-url.us-east-1.on.aws",
+  "region": "us-east-1",
+  "function_name": "housemed-prescription-api",
+  "agent_runtime_arn": "arn:aws:bedrock-agentcore:us-east-1:459119163412:runtime/housemed_agent-SMz12168lo",
+  "authentication": "Bearer token",
+  "cors_allowed_origins": "*"
+}

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f7f8fb" />
-    <title>HouseMeds — prototype</title>
+    <title>HouseMeds — Your household medicines</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
@@ -20,16 +20,14 @@
       </header>
 
       <section id="house" class="screen active" data-screen="house">
-        <div class="eyebrow">STEP 1 OF 3</div>
+        <div class="eyebrow" id="householdName">YOUR HOUSEHOLD</div>
         <h1>Who’s in your house?</h1>
-        <p class="lede">Add anyone whose medicines you want to keep in one place.</p>
-        <form id="memberForm" class="add-field">
-          <input id="memberName" autocomplete="off" placeholder="e.g. Grandma" aria-label="Member name" />
-          <button type="submit" class="plus" aria-label="Add household member">+</button>
-        </form>
+        <p class="lede">Keep your household’s medicines in one place. Choose a person or add a prescription with HouseMeds AI.</p>
+        <p id="houseStatus" role="status">Loading your household…</p>
         <div id="memberList" class="member-list" aria-live="polite"></div>
+        <button id="houseAssistant" class="ai-button full">✦ Add a prescription with AI</button>
         <div class="bottom-action">
-          <button id="membersNext" class="primary full">Continue <span>→</span></button>
+          <button id="membersNext" class="primary full" disabled>Continue <span>→</span></button>
         </div>
       </section>
 
@@ -38,7 +36,7 @@
         <h1>Whose medicines are we adding?</h1>
         <p class="lede">You can return anytime to add or update a list.</p>
         <div id="personChoices" class="person-choices"></div>
-        <button id="chooseNext" class="text-button">I’m finished adding medicines <span>→</span></button>
+        <button id="chooseNext" class="text-button">Compare medicine prices <span>→</span></button>
       </section>
 
       <section id="meds" class="screen" data-screen="meds">
@@ -47,7 +45,7 @@
         <div id="medicineList" class="medicine-list"></div>
         <button id="showMedicineForm" class="outline full">＋ Add medicine manually</button>
         <button id="openAssistant" class="ai-button full"><span>✦</span> Create with HouseMeds AI</button>
-        <button id="getDeals" class="primary full deal-cta">Get your deals <span>→</span></button>
+        <button id="getDeals" class="primary full deal-cta">Compare prices <span>→</span></button>
       </section>
 
       <section id="deals" class="screen" data-screen="deals">
@@ -77,32 +75,43 @@
       </section>
     </main>
 
-    <div id="medicineModal" class="modal" aria-hidden="true">
+    <div id="medicineModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
       <div class="modal-sheet">
         <div class="handle"></div>
         <button class="modal-close" aria-label="Close">×</button>
         <div class="eyebrow">ADD MEDICINE</div>
-        <h2>Enter prescription details</h2>
+        <h2 id="reviewTitle">Review prescription details</h2>
         <form id="medicineForm">
-          <label>Medicine name + strength<input id="medicineName" required placeholder="e.g. Zoloft 100mg" /></label>
-          <label>Dosage<input id="dosage" value="1 tablet, once daily" /></label>
-          <details><summary>Optional prescription details</summary><label>Quantity<input id="quantity" value="30 days" /></label><label>Refills<input id="refills" value="1" /></label><label>Current pharmacy<input id="pharmacy" placeholder="e.g. Walgreens" /></label></details>
-          <button class="primary full" type="submit">Add medicine</button>
+          <label id="draftChoiceLabel" hidden>Medicines to review<select id="draftChoice"></select></label>
+          <label>Who is this for?<select id="reviewMember" required><option value="">Choose a household member</option></select></label>
+          <label>Medicine name<input id="medicineName" required maxlength="160" placeholder="e.g. Zoloft" /></label>
+          <div class="review-grid"><label>Strength<input id="strength" maxlength="80" placeholder="e.g. 100 mg" /></label><label>Form<input id="medicineType" maxlength="80" placeholder="e.g. tablet" /></label></div>
+          <label>Directions on label<textarea id="dosage" maxlength="500" rows="2"></textarea></label>
+          <div class="review-grid"><label>Quantity<input id="quantity" maxlength="60" /></label><label>Refills<input id="refills" maxlength="60" /></label></div>
+          <label>Prescriber<input id="prescriber" maxlength="160" /></label><label>Pharmacy<input id="pharmacy" maxlength="160" /></label>
+          <p id="identity" class="lede"></p><ul id="reviewWarnings"></ul>
+          <p class="hint">Check each field against your photo. Empty fields were not provided or could not be read.</p>
+          <p id="reviewStatus" role="status"></p>
+          <button id="saveMedicine" class="primary full" type="submit">Save prescription</button>
         </form>
       </div>
     </div>
 
-    <div id="assistantModal" class="modal assistant-modal" aria-hidden="true">
+    <div id="assistantModal" class="modal assistant-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="HouseMeds AI">
       <div class="modal-sheet assistant-sheet">
         <div class="handle"></div>
         <div class="assistant-head"><div class="assistant-avatar">✦</div><div><b>HouseMeds AI</b><small>Here to help with your medicines</small></div><button class="modal-close" aria-label="Close">×</button></div>
-        <div id="chatMessages" class="chat-messages"></div>
+        <div id="chatMessages" class="chat-messages" role="log" aria-live="polite"></div>
         <div id="starterChoices" class="starter-choices"></div>
-        <form id="chatForm" class="chat-input"><button type="button" id="attach" aria-label="Attach prescription image">＋</button><input id="chatText" placeholder="Ask anything about medicines" /><button type="submit" aria-label="Send message">↑</button></form>
+        <div id="chatActions" class="starter-choices"></div>
+        <div id="attachment" hidden><img id="photoPreview" alt="Attached prescription photo" /><span id="photoName"></span><button id="removePhoto" type="button" aria-label="Remove photo">×</button></div>
+        <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" hidden />
+        <form id="chatForm" class="chat-input"><button type="button" id="attach" aria-label="Attach prescription image">＋</button><input id="chatText" maxlength="4000" aria-label="Message" placeholder="Add this prescription" /><button id="sendChat" type="submit" aria-label="Send message">↑</button></form>
+        <p id="chatStatus" class="hint" role="status">JPEG, PNG, WebP or HEIC · up to 10 MB</p>
       </div>
     </div>
     <div id="toast" class="toast" role="status"></div>
-    <script src="app.js"></script>
-    <script src="back.js"></script>
+    <script type="module" src="app.js"></script>
+    <script type="module" src="back.js"></script>
   </body>
 </html>

@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.*.example
 *.pem
 
 # Dependencies and generated output
@@ -9,6 +10,9 @@ node_modules/
 dist/
 coverage/
 .cache/
+.venv/
+__pycache__/
+.pytest_cache/
 *.log
 
 # Local operating-system files

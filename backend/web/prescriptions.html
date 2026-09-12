@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+ <title>HouseMeds — My prescriptions</title>
+ <meta name="description" content="Add a prescription photo, review its details, and save it for a household member.">
+ <link rel="stylesheet" href="/prescriptions.css"><script src="/prescriptions.js" defer></script>
+</head>
+<body>
+ <header><a class="brand" href="/">House<span>Meds</span></a><nav aria-label="Main navigation"><a href="/">Compare prices</a><a aria-current="page" href="/prescriptions">My prescriptions</a></nav></header>
+ <main>
+  <section class="intake" aria-labelledby="intake-heading">
+   <div id="household-name" class="eyebrow">Your household</div><h1 id="intake-heading">Add a prescription</h1>
+   <p class="intro">Start with a clear photo of a label or medication list. Review the details, then choose who it’s for.</p>
+   <div id="conversation" role="log" aria-live="polite"><p class="bubble assistant">Add a label photo or tell me the prescription details.</p></div>
+   <form id="chat-form">
+    <div id="attachment" hidden><img id="photo-preview" alt="Prescription photo to upload"><span id="photo-name"></span><button id="remove-photo" type="button">Remove photo</button></div>
+    <label for="message">Message</label><textarea id="message" name="message" rows="3" maxlength="4000" placeholder="Add this prescription"></textarea>
+    <div class="composer-actions"><label class="upload" for="photo">＋ Add photo</label><input id="photo" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"><button id="send" type="submit">Send →</button></div>
+    <p class="hint">JPEG, PNG, WebP or HEIC · up to 10 MB · photos are prepared in your browser</p>
+   </form>
+   <p id="notice" role="status"></p>
+  </section>
+  <section class="review" aria-labelledby="review-heading">
+   <div class="eyebrow">Prescription details</div><h2 id="review-heading">Review before saving</h2>
+   <p id="review-empty" class="empty">Your prescription details will appear here.</p>
+   <form id="review-form" hidden>
+    <div id="medicine-choice" hidden><label for="draft-choice">Medicines to review</label><select id="draft-choice"></select></div>
+    <label for="member">Who is this for?</label><select id="member" required><option value="">Choose a household member</option></select>
+    <div class="field-grid"><div class="wide"><label for="medication">Medication on label</label><input id="medication" maxlength="160" required></div>
+     <div><label for="strength">Strength</label><input id="strength" maxlength="80"></div><div><label for="form">Form</label><input id="form" maxlength="80"></div>
+     <div class="wide"><label for="directions">Directions on label</label><textarea id="directions" rows="2" maxlength="500"></textarea></div>
+     <div><label for="quantity">Quantity</label><input id="quantity" maxlength="60"></div><div><label for="refills">Refills</label><input id="refills" maxlength="60"></div>
+     <div><label for="prescriber">Prescriber</label><input id="prescriber" maxlength="160"></div><div><label for="pharmacy">Pharmacy</label><input id="pharmacy" maxlength="160"></div>
+    </div>
+    <p id="normalization" class="normalization"></p><ul id="warnings"></ul>
+    <p class="hint">Check each field against the label. Empty fields were not provided or could not be read.</p>
+    <button id="save" type="submit">Save prescription</button>
+   </form>
+  </section>
+  <section class="saved" aria-labelledby="saved-heading"><div class="saved-heading"><h2 id="saved-heading">Saved prescriptions</h2><button id="refresh" type="button" class="secondary">Refresh</button></div><div id="prescriptions"><p class="empty">Loading your prescriptions…</p></div></section>
+ </main>
+ <footer>HouseMeds · Keep the original prescription label for reference.</footer>
+</body></html>

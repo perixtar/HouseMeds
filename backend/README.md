@@ -1,5 +1,8 @@
 # HouseMeds backend
 
+For the shared AWS prescription backend used by any frontend, start with [PRESCRIPTION_API.md](PRESCRIPTION_API.md). `npm run prescriptions:api` runs that API locally; `npm run api` below is the separate pricing-read service.
+
+
 Backend implementation is in progress. The MVP has not passed acceptance testing.
 
 See the [root README](../README.md) for startup, CLI, configuration, and test commands.

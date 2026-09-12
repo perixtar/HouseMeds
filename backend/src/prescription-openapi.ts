@@ -1,0 +1,16 @@
+import {z} from 'zod';
+import {prescriptionInput} from './prescription-contract.js';
+
+export const prescriptionOpenApi = {
+  openapi: '3.1.0', info: {title: 'HouseMeds Prescription API', version: '1.0.0', description: 'Any frontend origin may call this API with a bearer token. AWS credentials and household selection remain on the server.'},
+  servers: [{url: '/'}], security: [{bearerAuth: []}],
+  components: {securitySchemes: {bearerAuth: {type: 'http', scheme: 'bearer'}}, schemas: {PrescriptionRequest: z.toJSONSchema(prescriptionInput)}},
+  paths: {
+    '/healthz': {get: {summary: 'API health', security: [], responses: {'200': {description: 'API is running; does not test AWS availability'}}}},
+    '/v1/prescription-chat/state': {get: {summary: 'Read household members and saved prescriptions through AgentCore and MCP', responses: {'200': {description: 'Members, prescriptions, provider, AWS request ID and MCP trace'}, '401': {description: 'Invalid bearer token'}, '502': {description: 'AWS runtime unavailable'}}}},
+    '/v1/prescription-chat': {post: {summary: 'Extract a photo, select a member, prepare manual fields, or confirm a save',
+      parameters: [{in: 'header', name: 'X-Housemed-Session-Id', required: false, schema: {type: 'string', format: 'uuid'}}],
+      requestBody: {required: true, content: {'application/json': {schema: {$ref: '#/components/schemas/PrescriptionRequest'}}}},
+      responses: {'200': {description: 'Action result: needs_member, needs_review, needs_details, or saved. Retain draft.id for subsequent turns.'}, '400': {description: 'Invalid request'}, '401': {description: 'Invalid bearer token'}, '413': {description: 'Image/request too large'}, '502': {description: 'AWS runtime unavailable; retry with the same request_id'}}}},
+  },
+};

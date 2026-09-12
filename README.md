@@ -1,5 +1,7 @@
 # HouseMeds
 
+The [shared prescription API](backend/PRESCRIPTION_API.md) connects any frontend to AWS AgentCore → HouseMeds MCP → Supabase Postgres. Teammates run `npm ci && npm run dev` in `frontend/` and enter the API access token; the shared AWS URL is prefilled. Frontends need no AWS or database credentials. The independent API accepts all origins with bearer authentication. See [frontend setup](frontend/README.md) and [runtime provisioning](agentcore/README.md).
+
 Medication catalog and pricing backend with a read-only CLI assistant and a prototype price-comparison web UI. Backend files live in [`backend/`](backend/); documentation lives in [`docs/`](docs/).
 
 The [HTML technical plan](docs/housemed-technical-plan.html) is the source of truth for architecture, implementation status, and MVP acceptance criteria. The proposed [medication normalization plan](docs/medication-normalization-plan.md) specifies the planned RxNorm-backed identity contract across the pricing backend and `MedAPI`. This README covers running the backend.
