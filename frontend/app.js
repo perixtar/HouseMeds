@@ -5,7 +5,7 @@ const $$ = selector => document.querySelectorAll(selector);
 const state = {members: [], prescriptions: [], selected: '', draft: null, drafts: [], member: '', photo: null, busy: false};
 const fields = {medication: 'medicineName', strength: 'strength', form: 'medicineType', directions: 'dosage', quantity: 'quantity', refills: 'refills', prescriber: 'prescriber', pharmacy: 'pharmacy'};
 const draftKey = 'housemed_mobile_draft_id';
-let lastRequest, manualRequestId, preview;
+let lastRequest, manualRequestId, preview, progressTimer;
 function el(tag, text, className) {
   const node = document.createElement(tag); if (text) node.textContent = text; if (className) node.className = className; return node;
 }
@@ -46,9 +46,20 @@ function go(id) { $$('.screen').forEach(s => s.classList.toggle('active', s.id =
 function closeModals() { $$('.modal').forEach(m => { m.classList.remove('show'); m.setAttribute('aria-hidden', 'true'); }); }
 function openModal(id) { closeModals(); $(id).classList.add('show'); $(id).setAttribute('aria-hidden', 'false'); }
 function toast(text) { $('#toast').textContent = text; $('#toast').classList.add('show'); setTimeout(() => $('#toast').classList.remove('show'), 3000); }
-function message(text, user = false) { const node = el('div', text, 'message' + (user ? ' user' : '')); $('#chatMessages').append(node); node.scrollIntoView({block: 'nearest'}); }
-function setBusy(value) {
+function message(text, user = false) { const node = el('div', text, 'message' + (user ? ' user' : '')); $('#chatMessages').append(node); node.scrollIntoView({block: 'nearest'}); return node; }
+function setBusy(value, title = 'Loading your medicines…', detail = 'Please wait a moment.') {
   state.busy = value;
+  clearTimeout(progressTimer);
+  $('#chatProgress').hidden = !value;
+  $('#chatForm').setAttribute('aria-busy', String(value));
+  $('#sendChat').classList.toggle('is-loading', value);
+  $('#sendChat').setAttribute('aria-label', value ? 'Please wait, request in progress' : 'Send message');
+  $('#chatActions').hidden = value || Boolean(state.photo);
+  $('#starterChoices').hidden = value || Boolean(state.photo);
+  if (value) {
+    $('#progressTitle').textContent = title; $('#progressDetail').textContent = detail;
+    progressTimer = setTimeout(() => { $('#progressDetail').textContent = 'Still working. You don’t need to send it again.'; }, 15000);
+  }
   $$('#chatForm button, #chatForm input, #medicineForm input, #medicineForm textarea, #medicineForm select, #saveMedicine, #photoInput, #removePhoto, #chatActions button, #starterChoices button').forEach(n => n.disabled = value);
   $('#membersNext').disabled = value || !state.members.length;
 }
@@ -98,6 +109,7 @@ function apply(result, speak = true) {
 }
 function removePhoto() {
   state.photo = null; $('#photoInput').value = ''; $('#attachment').hidden = true;
+  $('#photoPreview').removeAttribute('src');
   if (preview) URL.revokeObjectURL(preview); preview = null;
 }
 async function sendMessage(text) {
@@ -106,12 +118,28 @@ async function sendMessage(text) {
   const signature = JSON.stringify({...body, request_id: ''});
   if (lastRequest?.signature === signature) body.request_id = lastRequest.id;
   lastRequest = {signature, id: body.request_id};
-  setBusy(true); $('#chatStatus').textContent = state.photo ? 'Reading your prescription photo…' : 'Reading your message…';
-  message(text + (state.photo ? '\n[Prescription photo]' : ''), true);
+  const photo = state.photo;
+  setBusy(true, photo ? 'Sending photo & reading prescription…' : 'HouseMeds is responding…', photo ? 'We’re checking the image for medicine details. This may take a moment.' : 'Checking your prescription details.');
+  $('#chatStatus').textContent = '';
+  const sent = message(text || 'Add this prescription', true);
+  let photoStatus;
+  if (photo) {
+    const image = el('img', '', 'sent-photo'); image.alt = 'Your prescription photo';
+    image.src = `data:image/${photo.format};base64,${photo.data}`;
+    photoStatus = el('small', 'Sending photo…', 'photo-status');
+    sent.append(image, el('small', $('#photoName').textContent, 'sent-photo-name'), photoStatus);
+    $('#attachment').hidden = true;
+    sent.scrollIntoView({block: 'nearest'});
+  }
   try {
-    apply(await request(body)); $('#chatText').value = ''; removePhoto(); lastRequest = null; $('#starterChoices').replaceChildren();
+    const result = await request(body);
+    if (photoStatus) photoStatus.textContent = '✓ Photo received';
+    apply(result); $('#chatText').value = ''; removePhoto(); lastRequest = null; $('#starterChoices').replaceChildren();
     $('#chatStatus').textContent = state.draft ? 'Review the extracted details before saving.' : '';
-  } catch (e) { $('#chatStatus').textContent = e.message; } finally { setBusy(false); }
+  } catch (e) {
+    if (photoStatus) { photoStatus.textContent = 'Couldn’t finish · photo kept for retry'; $('#attachment').hidden = false; }
+    $('#chatStatus').textContent = `${e.message} Try sending again.`;
+  } finally { setBusy(false); }
 }
 for (const id of ['#memberList', '#personChoices']) $(id).onclick = event => {
   const button = event.target.closest('[data-person]'); if (!button) return;
@@ -126,10 +154,11 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(
 $('.brand').onclick = e => { e.preventDefault(); closeModals(); go('house'); };
 $('#chatForm').onsubmit = e => { e.preventDefault(); sendMessage($('#chatText').value.trim()); };
 $('#attach').onclick = () => $('#photoInput').click();
-$('#removePhoto').onclick = removePhoto;
+$('#removePhoto').onclick = () => { removePhoto(); setBusy(false); $('#chatStatus').textContent = 'Photo removed. You can attach another.'; };
 $('#photoInput').onchange = async () => {
   const file = $('#photoInput').files[0]; if (!file) return;
-  setBusy(true); $('#chatStatus').textContent = 'Preparing your photo…';
+  removePhoto();
+  setBusy(true, 'Preparing your photo…', 'Making the image ready to send.'); $('#chatStatus').textContent = '';
   try {
     const {preparePhoto} = await import('./photo.js'); const prepared = await preparePhoto(file);
     if (preview) URL.revokeObjectURL(preview); preview = prepared.preview; state.photo = prepared.image;
@@ -139,7 +168,7 @@ $('#photoInput').onchange = async () => {
 };
 $('#reviewMember').onchange = () => { state.member = $('#reviewMember').value; chatActions(); };
 $('#draftChoice').onchange = async () => {
-  setBusy(true); $('#reviewStatus').textContent = 'Loading prescription…';
+  setBusy(true, 'Loading prescription…'); $('#reviewStatus').textContent = 'Loading prescription…';
   try { apply(await request({action: 'chat', request_id: crypto.randomUUID(), draft_id: $('#draftChoice').value, message: ''}), false); }
   catch (e) { $('#reviewStatus').textContent = e.message; } finally { setBusy(false); }
 };
@@ -154,7 +183,7 @@ $('#medicineForm').onsubmit = async event => {
   const member = $('#reviewMember').value;
   const reviewed = Object.fromEntries(Object.entries(fields).map(([key, id]) => [key, $('#' + id).value.trim()]));
   reviewed.warnings = state.draft?.fields.warnings ?? [];
-  setBusy(true); $('#reviewStatus').textContent = 'Saving your prescription…';
+  setBusy(true, 'Saving your prescription…'); $('#reviewStatus').textContent = 'Saving your prescription…';
   try {
     if (!state.draft) {
       const prepared = await request({action: 'prepare', request_id: manualRequestId ??= crypto.randomUUID(), fields: reviewed});

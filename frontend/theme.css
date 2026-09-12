@@ -92,10 +92,25 @@ button:disabled { opacity: .55; cursor: wait; }
 .review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 label select, label textarea { display: block; width: 100%; padding: 12px; margin-top: 5px; border: 1px solid var(--line); border-radius: 11px; background: white; color: var(--ink); font: inherit; }
 .hint { font-size: 12px; color: var(--muted); }
-#attachment { display: flex; gap: 8px; align-items: center; font-size: 12px; padding-top: 8px; }
-#attachment img { width: 42px; height: 48px; object-fit: cover; border-radius: 5px; }
-#attachment span { flex: 1; overflow-wrap: anywhere; }
-#attachment button { border: 0; background: transparent; font-size: 22px; }
+#attachment { display: flex; gap: 12px; align-items: center; font-size: 12px; padding: 12px; margin-top: 10px; border: 1px solid #addcf3; border-radius: 14px; background: #e9f7ff; flex-shrink: 0; }
+#attachment img { width: 64px; height: 76px; object-fit: contain; background: white; border-radius: 7px; }
+.attachment-details { flex: 1; min-width: 0; }
+.attachment-details strong { display: block; color: #176895; font-size: 14px; }
+.attachment-details span { display: block; overflow-wrap: anywhere; margin: 3px 0; }
+.attachment-details small { color: var(--muted); }
+#attachment button { flex-shrink: 0; border: 0; background: transparent; font-size: 22px; min-width: 36px; min-height: 44px; cursor: pointer; }
+.sent-photo { display: block; width: 180px; max-width: 100%; height: 160px; object-fit: contain; background: white; border-radius: 9px; margin-top: 10px; }
+.sent-photo-name, .photo-status { display: block; font-size: 11px; line-height: 1.4; margin-top: 7px; }
+.photo-status { font-weight: 700; }
+.chat-progress { display: flex; align-items: center; gap: 12px; padding: 14px; margin-bottom: 10px; border: 1px solid #addcf3; border-radius: 14px; background: var(--mint); flex-shrink: 0; }
+.chat-progress strong { display: block; font-size: 14px; color: #176895; }
+.chat-progress small { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+.spinner { display: inline-block; flex-shrink: 0; width: 22px; height: 22px; border: 3px solid #addcf3; border-top-color: #176895; border-radius: 50%; animation: spin .8s linear infinite; }
+#sendChat { flex-shrink: 0; }
+#sendChat.is-loading { font-size: 0; display: grid; place-items: center; }
+#sendChat.is-loading::after { content: ''; width: 18px; height: 18px; border: 2px solid #ffffff66; border-top-color: white; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner, #sendChat.is-loading::after { animation: none; } }
 .message { white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-messages { display: flex; flex-direction: column; min-height: 100px; }
 .message.user { align-self: flex-end; }

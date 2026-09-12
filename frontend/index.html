@@ -102,9 +102,10 @@
         <div class="handle"></div>
         <div class="assistant-head"><div class="assistant-avatar">✦</div><div><b>HouseMeds AI</b><small>Here to help with your medicines</small></div><button class="modal-close" aria-label="Close">×</button></div>
         <div id="chatMessages" class="chat-messages" role="log" aria-live="polite"></div>
+        <div id="chatProgress" class="chat-progress" role="status" hidden><span class="spinner" aria-hidden="true"></span><div><strong id="progressTitle"></strong><small id="progressDetail"></small></div></div>
         <div id="starterChoices" class="starter-choices"></div>
         <div id="chatActions" class="starter-choices"></div>
-        <div id="attachment" hidden><img id="photoPreview" alt="Attached prescription photo" /><span id="photoName"></span><button id="removePhoto" type="button" aria-label="Remove photo">×</button></div>
+        <div id="attachment" hidden><img id="photoPreview" alt="Attached prescription photo" /><div class="attachment-details"><strong>✓ Photo attached</strong><span id="photoName"></span><small>Ready to send · tap the arrow below</small></div><button id="removePhoto" type="button" aria-label="Remove photo">×</button></div>
         <input id="photoInput" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" hidden />
         <form id="chatForm" class="chat-input"><button type="button" id="attach" aria-label="Attach prescription image">＋</button><input id="chatText" maxlength="4000" aria-label="Message" placeholder="Add this prescription" /><button id="sendChat" type="submit" aria-label="Send message">↑</button></form>
         <p id="chatStatus" class="hint" role="status">JPEG, PNG, WebP or HEIC · up to 10 MB</p>
