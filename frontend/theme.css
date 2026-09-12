@@ -1,0 +1,86 @@
+/* Light-blue identity layer for the mobile prototype. */
+:root {
+  --ink: #173342;
+  --muted: #5c7180;
+  --line: #d7e5ed;
+  --paper: #f7fbfe;
+  --white: #fff;
+  /* Dark enough to meet readable white-text contrast while retaining a light-blue feel. */
+  --green: #287fb7;
+  --mint: #e0f3ff;
+  --yellow: #fff0ba;
+  --coral: #dceefa;
+}
+
+.brand,
+.logo-name,
+h1,
+h2 {
+  font-family: Nunito, "Arial Rounded MT Bold", "Avenir Next Rounded", sans-serif;
+  font-weight: 900;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 21px;
+  letter-spacing: -0.7px;
+}
+
+.house-logo {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 27px;
+  height: 22px;
+  margin-top: 5px;
+  border-radius: 5px 5px 7px 7px;
+  background: #65b9e8;
+  color: #fff;
+  box-shadow: inset 0 -2px 0 #3f9dcc;
+}
+
+.house-logo::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 3px;
+  width: 19px;
+  height: 19px;
+  border-radius: 4px 4px 0 0;
+  background: #65b9e8;
+  transform: rotate(45deg);
+  z-index: 0;
+}
+
+.house-logo span {
+  position: relative;
+  z-index: 1;
+  font: 900 10px/1 Nunito, sans-serif;
+  letter-spacing: -1px;
+  transform: translateY(1px);
+}
+
+.savings-card {
+  background-image: radial-gradient(circle at 95% 0, #87cef3, transparent 35%);
+}
+
+.ai-button {
+  border-color: #addcf3;
+  color: #176895;
+}
+
+.recommend-label span {
+  background: #d8f0fc;
+}
+
+.how-it-works {
+  background: #e9f7ff;
+}
+
+/* On a phone, prescription entry needs enough room to feel like a focused task. */
+.modal-sheet {
+  height: 94dvh;
+  max-height: 94dvh;
+}
