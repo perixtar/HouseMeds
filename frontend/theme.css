@@ -119,3 +119,9 @@ label select, label textarea { display: block; width: 100%; padding: 12px; margi
 #chatStatus { margin: 6px 0 0; min-height: 18px; }
 #reviewStatus { color: var(--green); }
 .saved-badge { margin-left: auto; color: var(--green); font-size: 12px; }
+.prototype-notice { padding: 12px; background: var(--mint); border: 1px solid #addcf3; border-radius: 12px; color: #176895; font-size: 13px; }
+.deal { width: 100%; text-align: left; color: var(--ink); }
+.deal > span:nth-child(2) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.deal .deal-icon { flex-shrink: 0; }
+.deal .price { flex-shrink: 0; font-size: 14px; text-align: right; }
+.toast:not(.show) { visibility: hidden; }

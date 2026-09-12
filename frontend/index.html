@@ -36,7 +36,7 @@
         <h1>Whose medicines are we adding?</h1>
         <p class="lede">You can return anytime to add or update a list.</p>
         <div id="personChoices" class="person-choices"></div>
-        <button id="chooseNext" class="text-button">Compare medicine prices <span>→</span></button>
+        <button id="chooseNext" class="text-button">I’m finished adding medicines <span>→</span></button>
       </section>
 
       <section id="meds" class="screen" data-screen="meds">
@@ -45,14 +45,16 @@
         <div id="medicineList" class="medicine-list"></div>
         <button id="showMedicineForm" class="outline full">＋ Add medicine manually</button>
         <button id="openAssistant" class="ai-button full"><span>✦</span> Create with HouseMeds AI</button>
-        <button id="getDeals" class="primary full deal-cta">Compare prices <span>→</span></button>
+        <button id="getDeals" class="primary full deal-cta">Get your deals <span>→</span></button>
       </section>
 
       <section id="deals" class="screen" data-screen="deals">
         <div class="eyebrow">YOUR SAVINGS PLAN</div>
         <h1>Best deals for your house</h1>
-        <p class="lede">We found lower prices for each prescription. Tap a medicine to compare options.</p>
-        <div class="savings-card"><span>Estimated yearly savings</span><strong>$482</strong><small>compared with your current pharmacy</small></div>
+        <p class="lede">Tap a medicine to compare options for your household.</p>
+        <p class="prototype-notice">Mock pricing preview · Example prices for your saved medicines, not live pharmacy quotes.</p>
+        <div id="savingsCard" class="savings-card"><span>Illustrative yearly savings</span><strong id="savingsTotal">$0.00</strong><small>using the prototype’s example 90-day prices</small></div>
+        <div id="dealsEmpty" hidden><p class="lede">Add a medicine to preview deals for your house.</p><button id="dealsAddMedicine" class="outline full">Choose a household member →</button></div>
         <div id="dealList" class="deal-list"></div>
       </section>
 
@@ -60,18 +62,19 @@
         <button class="inline-back" data-go="deals">← All deals</button>
         <div class="eyebrow">BEST PRICE FOR <span id="detailPerson">GRANDMA</span></div>
         <h1 id="detailName">Sertraline 100mg</h1>
-        <p class="drug-subtitle">Also known as Zoloft</p>
+        <p id="detailIdentity" class="drug-subtitle"></p>
+        <p class="prototype-notice">Mock pricing preview · These offers are examples, not live quotes.</p>
         <div class="recommended">
-          <div class="recommend-label">OUR RECOMMENDATION <span>Best value</span></div>
-          <h2>Cost Plus Drugs</h2>
-          <div class="price-row"><strong>$12.40</strong><span>for 90 days</span></div>
-          <p>About <b>14¢ per pill</b> · Delivered to your door</p>
+          <div class="recommend-label">EXAMPLE OFFER <span>Best value</span></div>
+          <h2 id="dealPharmacy"></h2>
+          <div class="price-row"><strong id="dealPrice"></strong><span id="dealSupply"></span></div>
+          <p>Illustrative cash price · availability has not been checked</p>
           <button class="primary full" id="selectDeal">Select this deal</button>
+          <p id="dealSelection" role="status"></p>
         </div>
         <h3>Other options</h3>
-        <div class="option"><span>Local Pharmacy</span><b>$38.99</b></div>
-        <div class="option"><span>GoodRx at CVS</span><b>$21.20</b></div>
-        <div class="how-it-works"><span>✦</span><p><b>Need a 90-day prescription?</b><br />We’ll prepare clear instructions to send your prescriber.</p></div>
+        <div id="otherOffers"></div>
+        <div class="how-it-works"><span>✦</span><p><b>Preview the next step</b><br />Selecting an example offer stays in this demo. It does not order medicine or contact a pharmacy.</p></div>
       </section>
     </main>
 

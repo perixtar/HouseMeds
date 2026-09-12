@@ -1,4 +1,5 @@
 import {callPrescriptionApi} from './api.js';
+import {prototypeDeals, money} from './deals.js';
 // PR #4 mobile UI: all persistence goes through the independent HTTP API.
 const $ = selector => document.querySelector(selector);
 const $$ = selector => document.querySelectorAll(selector);
@@ -6,6 +7,7 @@ const state = {members: [], prescriptions: [], selected: '', draft: null, drafts
 const fields = {medication: 'medicineName', strength: 'strength', form: 'medicineType', directions: 'dosage', quantity: 'quantity', refills: 'refills', prescriber: 'prescriber', pharmacy: 'pharmacy'};
 const draftKey = 'housemed_mobile_draft_id';
 let lastRequest, manualRequestId, preview, progressTimer;
+let deals = [], selectedDeal;
 function el(tag, text, className) {
   const node = document.createElement(tag); if (text) node.textContent = text; if (className) node.className = className; return node;
 }
@@ -42,6 +44,33 @@ function renderMeds() {
   if (!medicines(state.selected).length) $('#medicineList').append(el('p', 'No medicines added yet. Add one manually or scan a prescription.', 'lede'));
 }
 function render() { renderMembers(); renderChoices(); renderMeds(); }
+function renderDeals() {
+  deals = prototypeDeals(state.prescriptions, state.members);
+  $('#dealList').replaceChildren();
+  $('#savingsTotal').textContent = money(deals.reduce((total, deal) => total + deal.annualSavingsCents, 0));
+  $('#savingsCard').hidden = !deals.length;
+  $('#dealsEmpty').hidden = Boolean(deals.length);
+  for (const deal of deals) {
+    const button = el('button', '', 'deal'); button.type = 'button';
+    const detail = el('span'); detail.append(el('b', deal.name), el('small', `${deal.member} · example savings ${money(deal.annualSavingsCents)}/year`));
+    const price = el('span', `From ${money(deal.best.priceCents)}`, 'price'); price.append(el('small', `/ ${deal.best.daysSupply} days`));
+    button.append(el('span', '▰', 'deal-icon'), detail, price);
+    button.onclick = () => showDeal(deal); $('#dealList').append(button);
+  }
+}
+function showDeal(deal) {
+  selectedDeal = deal;
+  $('#detailPerson').textContent = deal.member.toUpperCase(); $('#detailName').textContent = deal.name;
+  $('#detailIdentity').textContent = deal.identity; $('#detailIdentity').hidden = !deal.identity;
+  $('#dealPharmacy').textContent = deal.best.pharmacy; $('#dealPrice').textContent = money(deal.best.priceCents);
+  $('#dealSupply').textContent = `for ${deal.best.daysSupply} days`;
+  $('#otherOffers').replaceChildren(...deal.offers.slice(1).map(offer => {
+    const row = el('div', '', 'option'); row.append(el('span', offer.pharmacy), el('b', money(offer.priceCents))); return row;
+  }));
+  $('#selectDeal').textContent = 'Select this deal'; $('#dealSelection').textContent = '';
+  go('detail');
+}
+function openDeals() { renderDeals(); go('deals'); }
 function go(id) { $$('.screen').forEach(s => s.classList.toggle('active', s.id === id)); window.scrollTo(0, 0); }
 function closeModals() { $$('.modal').forEach(m => { m.classList.remove('show'); m.setAttribute('aria-hidden', 'true'); }); }
 function openModal(id) { closeModals(); $(id).classList.add('show'); $(id).setAttribute('aria-hidden', 'false'); }
@@ -146,7 +175,14 @@ for (const id of ['#memberList', '#personChoices']) $(id).onclick = event => {
   state.selected = button.dataset.person; renderMeds(); go('meds');
 };
 $('#membersNext').onclick = () => { renderChoices(); go('choose'); };
-for (const id of ['#chooseNext', '#getDeals']) $(id).onclick = () => { window.location.href = '/'; };
+for (const id of ['#chooseNext', '#getDeals']) $(id).onclick = openDeals;
+$('[data-go="deals"]').onclick = () => go('deals');
+$('#dealsAddMedicine').onclick = () => { renderChoices(); go('choose'); };
+$('#selectDeal').onclick = () => {
+  if (!selectedDeal) return;
+  $('#selectDeal').textContent = '✓ Selected for this preview';
+  $('#dealSelection').textContent = `${selectedDeal.best.pharmacy} selected for ${selectedDeal.name}. Demo selection only; no order or prescription transfer was sent.`;
+};
 for (const id of ['#openAssistant', '#helpButton', '#houseAssistant']) $(id).onclick = () => openModal('#assistantModal');
 $$('.modal-close').forEach(b => b.onclick = closeModals);
 $$('.modal').forEach(m => m.onclick = e => { if (e.target === m) closeModals(); });

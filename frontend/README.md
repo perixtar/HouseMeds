@@ -25,6 +25,7 @@ The frontend uses ordinary `fetch`, bearer authentication, and no cookies. All f
 4. Open **Review prescription**; check the populated form against the photo.
 5. **Save prescription**. The household list and counts refresh from the API response.
 6. Reload and select the member: the saved record is read back from Supabase.
+7. Tap **Get your deals** to open the prototype household savings screen. Select a medicine, compare the example offers, and use **Select this deal** to preview selection. Back navigation returns to deals, medicines, and the household picker.
 
 PNG, JPEG, WebP, and HEIC are supported. HEIC conversion is bundled into the frontend and runs locally. For multi-medicine photographs, review and save each medicine individually. Remaining drafts are restored for the current tab. Manual entry uses the same API and persistence without model extraction.
 
@@ -40,7 +41,7 @@ npm run preview
 
 Deploy `dist/` to your frontend host. Vite includes `VITE_` values in the build: the token is absent from the interface but can be inspected in browser assets and requests. Use this shared token for the trusted team development environment; public multi-user deployments need user authentication.
 
-The supplied API token currently authorizes one shared development household. Members are read from the database; member administration is outside this prescription-intake flow. The separate pricing prototype is not part of prescription persistence.
+The supplied API token currently authorizes one shared development household. Members are read from the database; member administration is outside this prescription-intake flow. The main app uses the household prototype’s deals screens with saved AWS prescriptions. `deals.js` supplies clearly labeled example prices; no live quote, order, or prescription transfer is made. The AWS chat, image review, and prescription persistence remain connected to the shared backend.
 
 See [the API contract, examples, architecture, and deployment instructions](../backend/PRESCRIPTION_API.md).
 
