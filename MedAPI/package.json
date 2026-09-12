@@ -1,0 +1,55 @@
+{
+  "name": "medhouse-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MedHouse — household medication-cost tracking API (serverless, hexagonal architecture)",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20 <21"
+  },
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/dev-server.ts",
+    "build": "npm run typecheck",
+    "test": "vitest run tests/domain tests/usecases",
+    "test:watch": "vitest tests/domain tests/usecases",
+    "test:integration": "vitest run tests/adapters",
+    "lint": "eslint . && prettier --check .",
+    "lint:fix": "eslint . --fix && prettier --write .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "deploy:dev": "sls deploy --config serverless-dev.yml",
+    "deploy:prod": "sls deploy --config serverless-prod.yml"
+  },
+  "dependencies": {
+    "@aws-lambda-powertools/idempotency": "^2.11.0",
+    "@aws-lambda-powertools/logger": "^2.11.0",
+    "@aws-lambda-powertools/parameters": "^2.11.0",
+    "@aws-lambda-powertools/tracer": "^2.11.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.658.0",
+    "@aws-sdk/client-dynamodb": "^3.658.0",
+    "@aws-sdk/client-sqs": "^3.658.0",
+    "@aws-sdk/client-ssm": "^3.1128.0",
+    "@aws-sdk/util-dynamodb": "^3.996.9",
+    "@fastify/aws-lambda": "^4.1.0",
+    "@fastify/swagger": "^8.15.0",
+    "@fastify/swagger-ui": "^4.1.1",
+    "fastify": "^4.28.1",
+    "fastify-type-provider-zod": "^2.1.0",
+    "mongodb": "^6.9.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^20.16.5",
+    "@typescript-eslint/eslint-plugin": "^8.6.0",
+    "@typescript-eslint/parser": "^8.6.0",
+    "esbuild": "^0.23.1",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "serverless": "^3.39.0",
+    "serverless-esbuild": "^1.54.6",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.1"
+  }
+}
