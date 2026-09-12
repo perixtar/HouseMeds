@@ -6,7 +6,7 @@ const app = buildApp();
 
 export const handler = awsLambdaFastify(app, {
   decorateRequest: true,
-  // Mongo's client stays warm across invocations, so the event loop never
+  // The Postgres client stays warm across invocations, so the event loop never
   // idles on its own — return on promise settle, not on event-loop drain.
   callbackWaitsForEmptyEventLoop: false,
 });

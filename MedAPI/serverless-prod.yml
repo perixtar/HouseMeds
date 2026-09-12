@@ -34,11 +34,7 @@ provider:
     # this writing — see the init-aws-services skill.
     COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID_PROD}
     COGNITO_APP_CLIENT_ID: ${env:COGNITO_APP_CLIENT_ID_PROD}
-    PRICE_COMPARISON_QUEUE_URL: https://sqs.${self:provider.region}.amazonaws.com/${aws:accountId}/medhouse-price-comparison-jobs-prod
-    IDEMPOTENCY_TABLE_NAME: ${self:custom.idempotencyTableName}
-    MONGODB_URI_SSM_PARAM: /medhouse/prod/mongodb-uri
-    PRICING_API_KEY_SSM_PARAM: /medhouse/prod/pricing-api-key
-    PRICING_API_BASE_URL: ${ssm:/medhouse/prod/pricing-api-base-url}
+    SUPABASE_DB_URL_SSM_PARAM: /medhouse/prod/supabase-db-url
     # HttpApi's physical id isn't known until CloudFormation creates it.
     API_BASE_URL:
       Fn::Join:
@@ -63,32 +59,11 @@ provider:
             - arn:aws:cognito-idp:${self:provider.region}:*:userpool/${env:COGNITO_USER_POOL_ID_PROD}
         - Effect: Allow
           Action:
-            - sqs:SendMessage
-          Resource:
-            - arn:aws:sqs:${self:provider.region}:*:medhouse-price-comparison-jobs-prod
-        - Effect: Allow
-          Action:
-            - sqs:ReceiveMessage
-            - sqs:DeleteMessage
-            - sqs:GetQueueAttributes
-          Resource:
-            - arn:aws:sqs:${self:provider.region}:*:medhouse-price-comparison-jobs-prod
-        - Effect: Allow
-          Action:
             - ssm:GetParameter
           Resource:
             - arn:aws:ssm:${self:provider.region}:*:parameter/medhouse/prod/*
-        - Effect: Allow
-          Action:
-            - dynamodb:GetItem
-            - dynamodb:PutItem
-            - dynamodb:UpdateItem
-            - dynamodb:DeleteItem
-          Resource:
-            - !GetAtt IdempotencyTable.Arn
 
 custom:
-  idempotencyTableName: medhouse-idempotency-prod
   esbuild:
     bundle: true
     minify: true
@@ -135,33 +110,6 @@ functions:
           method: '*'
           authorizer:
             name: cognitoJwtAuthorizer
-
-  worker:
-    handler: src/worker.handler
-    description: MedHouse (prod) — getPriceComparison, the one heavy-compute path, off the request cycle
-    # No reservedConcurrency: account concurrency quota is 10, AWS requires >=10 unreserved.
-    events:
-      - sqs:
-          arn: arn:aws:sqs:${self:provider.region}:${aws:accountId}:medhouse-price-comparison-jobs-prod
-          batchSize: 1
-
-resources:
-  Resources:
-    # Idempotency records for add/update-prescription.
-    IdempotencyTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:custom.idempotencyTableName}
-        BillingMode: PAY_PER_REQUEST
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
-        TimeToLiveSpecification:
-          AttributeName: expiration
-          Enabled: true
 
 plugins:
   - serverless-esbuild
