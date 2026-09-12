@@ -5,10 +5,14 @@ export type SourceSlug = 'healthwarehouse'|'costplus';
 export type Availability = 'in_stock'|'out_of_stock'|'unknown';
 export type Json = Record<string,unknown>;
 export interface Medication {name:string; strength:string; form:string; route:string; release_type:string;}
+export interface MedicationIdentityCandidate {
+ name:string;strength:string;form:string;route?:string|null;release_type?:string|null;
+ brand_name?:string|null;ndc?:string|null;species?:string[];
+}
 export interface Listing {
  source_product_key:string; source_name:string; url:string; brand_name:string|null;
  sold_as:string; content_quantity:string|null; content_unit:string|null;
- medication?:Medication; metadata:Json;
+ medication?:Medication; identity_candidate?:MedicationIdentityCandidate; metadata:Json;
 }
 export interface Quote {
  quantity:string; price_cents:string|null; currency:'USD'; availability:Availability;

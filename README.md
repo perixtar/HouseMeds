@@ -2,7 +2,7 @@
 
 Medication catalog and pricing backend with a read-only CLI assistant and a prototype price-comparison web UI. Backend files live in [`backend/`](backend/); documentation lives in [`docs/`](docs/).
 
-The [HTML technical plan](docs/housemed-technical-plan.html) is the source of truth for architecture, implementation status, and MVP acceptance criteria. This README covers running the backend.
+The [HTML technical plan](docs/housemed-technical-plan.html) is the source of truth for architecture, implementation status, and MVP acceptance criteria. The proposed [medication normalization plan](docs/medication-normalization-plan.md) specifies the planned RxNorm-backed identity contract across the pricing backend and `MedAPI`. This README covers running the backend.
 
 ## Quick start on this Mac
 
@@ -69,6 +69,36 @@ HouseMeds does not scale a 30-count price to estimate an unobserved 90- or 180-c
 
 For the hackathon, a family medication list should be processed ephemerally by making one exact-quantity query per medication. Do not attach names or family relationships to the requests. Persisting patient or household information would require a deliberate privacy, consent, retention, and access-control design that is outside the current schema.
 
+### Incoming medication normalization
+
+The repository now contains the locally verified Milestone 1 implementation. New source identities are normalized into controlled form, strength-unit, and quantity-unit values and resolved to an active RxNorm SCD/SBD concept when a single compatible result exists. Source text and matching evidence are retained; approximate, ambiguous, conflicting, unsupported, combination-strength, and unreviewed veterinary matches never auto-link. The incoming MVP auto-links only identities whose single structured strength can be validated safely; combination products require the review/component workflow before they can be compared.
+
+The pricing catalog response adds `canonical_name`, `rxnorm_rxcui`, `rxnorm_term_type`, `normalization_status`, versions, and structured `components`. Existing rows return `normalization_status: "legacy"` until the separate backfill milestone. This schema/code has not yet been deployed to the shared service.
+
+Run the deterministic cross-service E2E after installing dependencies in both `backend/` and `MedAPI/`:
+
+```bash
+cd backend
+npm run e2e:normalization
+npm run e2e:normalization:live  # optional: calls the current NLM RxNorm API
+```
+
+### Existing-data backfill
+
+Milestone 2 is implemented as a separate, operator-controlled workflow described in the [backfill runbook](docs/medication-backfill-runbook.md). It never runs during normal crawling or deployment. A stage requires the report from a restore-tested logical backup; approval requires a named reviewer; collision groups require the separate `--approve-collisions` acknowledgement; apply and compensation each require the exact run confirmation printed by the preceding command.
+
+```bash
+cd backend
+npm run backup -- --restore-test
+npm run backfill:medications -- dry-run
+npm run backfill:medications -- stage --backup-report data/backups/<backup>.report.json --actor <reviewer>
+npm run backfill:medications -- approve --run <id> --actor <reviewer> [--approve-collisions]
+npm run backfill:medications -- apply --run <id> --actor <reviewer> --confirm '<printed-token>'
+npm run e2e:backfill
+```
+
+The workflow stages immutable decisions, leaves ambiguous and unmatched records unresolved, repoints only approved verified listings, preserves raw evidence and price history, retains superseded-ID resolution, and verifies counts and hashes transactionally. These commands have not been run against the shared database.
+
 ## Use the database-backed read API
 
 The API is read-only. It is available locally at `http://127.0.0.1:63813` and is deployed at `https://housemeds-api-jg3hpr52da-uw.a.run.app`. Every route requires the bearer token configured as `HOUSEMED_API_TOKEN`. Obtain the token through the team's approved secret-sharing process and put it in your environment; never commit it or paste it into documentation.
@@ -86,9 +116,11 @@ test -n "$HOUSEMED_API_TOKEN" || echo "Set HOUSEMED_API_TOKEN first"
 | --- | --- |
 | `GET /v1/sources/status` | Collection status, catalog counts, and fresh/stale offer counts by source. |
 | `GET /v1/medications` | Search canonical medication identities by name. |
+| `GET /v1/medications/:id` | Resolve an active or superseded medication ID to its active canonical identity. |
 | `GET /v1/listings` | Search pharmacy-specific product listings. |
 | `GET /v1/medications/:id/offers` | Compare eligible offers across verified listings for one medication. |
 | `GET /v1/listings/:id/offers` | Read eligible quantity tiers for one pharmacy listing. |
+| `GET /v1/normalization/backfill/status` | Read the latest backfill phase, summary, and reconciliation result. |
 
 All requests use the same authorization header:
 

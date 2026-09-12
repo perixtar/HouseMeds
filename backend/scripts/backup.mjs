@@ -1,13 +1,14 @@
 import {DatabaseSocket,networkFetch} from '../src/network.ts';
 import pg from 'pg';
-import {readFile,mkdir,writeFile,readdir,rm,mkdtemp} from 'node:fs/promises';
+import {readFile,mkdir,writeFile,readdir,rm,mkdtemp} from 'node:fs/promises';import {existsSync} from 'node:fs';
 import {gzipSync,gunzipSync} from 'node:zlib';
 import {resolve} from 'node:path';
 import {randomBytes} from 'node:crypto';
 import {artifactRoots,digest,collectArtifacts,decodeArtifactFiles,checkEvidenceReferences,restoreArtifacts} from './backup-files.mjs';
-process.loadEnvFile('.env.worker');
-const tables=['sources','medications','crawl_runs','listings','crawl_pages','offers','offer_history'];
-const live=new pg.Client({connectionString:process.env.DATABASE_URL,stream:()=>new DatabaseSocket(),connectionTimeoutMillis:15000,ssl:{rejectUnauthorized:true,ca:await readFile('config/supabase-ca.crt','utf8')}});
+if(existsSync('.env.worker'))process.loadEnvFile('.env.worker');
+const tables=['sources','medications','medication_backfill_runs','medication_components','crawl_runs','listings','medication_backfill_items','medication_backfill_events','medication_matches','crawl_pages','offers','offer_history'];
+if(!process.env.DATABASE_URL)throw Error('DATABASE_NOT_CONFIGURED');const databaseUrl=new URL(process.env.DATABASE_URL),local=/^(localhost|127\.0\.0\.1)$/.test(databaseUrl.hostname);
+const live=new pg.Client({connectionString:process.env.DATABASE_URL,stream:()=>new DatabaseSocket(),connectionTimeoutMillis:15000,ssl:local?false:{rejectUnauthorized:true,ca:await readFile('config/supabase-ca.crt','utf8')}});
 await live.connect();const snapshot={format:'housemed-logical-backup-v3',created_at:new Date().toISOString(),tables:{},files:[]};
 try{await live.query('begin isolation level repeatable read read only');for(const table of tables)snapshot.tables[table]=(await live.query(`select * from pricing.${table} order by id`)).rows;await live.query('commit');}finally{await live.end();}
 // Explicit private roots include crawler extracts, browser/identity evidence, and
@@ -18,7 +19,9 @@ const basename=snapshot.created_at.replaceAll(':','-')+'.json.gz';
 await mkdir('data/backups',{recursive:true});const filename='data/backups/'+basename;
 const bytes=gzipSync(JSON.stringify(snapshot));await writeFile(filename,bytes,{mode:0o600});
 const backupHash=digest(bytes);let verifiedArchive=bytes;
+const canonicalize=value=>Array.isArray(value)?value.map(canonicalize):value&&typeof value==='object'&&!(value instanceof Date)?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonicalize(value[key])])):value instanceof Date?value.toISOString():value;
 const report={backup:filename,format:snapshot.format,created_at:snapshot.created_at,sha256:backupHash,compressed_bytes:bytes.length,
+ database_state_hash:digest(Buffer.from(JSON.stringify(canonicalize(snapshot.tables)))),
  rows:Object.fromEntries(tables.map(t=>[t,snapshot.tables[t].length])),evidence_files:snapshot.files.filter(file=>file.path.startsWith('data/evidence/')).length,
  artifact_roots:Object.fromEntries(artifactRoots.map(root=>[root,snapshot.files.filter(file=>file.path.startsWith(root+'/')).length])),
  files:snapshot.files.map(({path,sha256})=>({path,sha256})),remote_verified:false,restore_verified:false};
@@ -55,7 +58,7 @@ if(process.argv.includes('--restore-test')){
   for(const table of tables){
    for(const row of decoded.tables[table]){
     const columns=Object.keys(row);if(columns.some(c=>!/^\w+$/.test(c)))throw Error('INVALID_BACKUP_COLUMN');
-    await restored.query(`insert into pricing.${table}(${columns.join(',')}) overriding system value values(${columns.map((_,i)=>'$'+(i+1)).join(',')})`,columns.map(c=>row[c]));
+    await restored.query(`insert into pricing.${table}(${columns.join(',')}) overriding system value values(${columns.map((_,i)=>'$'+(i+1)).join(',')})`,columns.map(c=>row[c]!==null&&typeof row[c]==='object'?JSON.stringify(row[c]):row[c]));
    }
    await restored.query(`select setval(pg_get_serial_sequence('pricing.${table}','id'),coalesce(max(id),1),max(id) is not null) from pricing.${table}`);
   }
@@ -74,12 +77,14 @@ if(process.argv.includes('--restore-test')){
    const unauthorized=await fetch(origin+'/v1/sources/status',{signal:AbortSignal.timeout(10000)});if(unauthorized.status!==401)throw Error('RESTORE_API_AUTH_FAILED');checks.push({path:'/v1/sources/status',authorized:false,status:401});
    const medication=snapshot.tables.medications.find(m=>snapshot.tables.listings.some(l=>l.medication_id===m.id&&l.match_status==='verified'));
    if(!medication)throw Error('RESTORE_API_NO_VERIFIED_MEDICATION');
-   for(const path of ['/v1/sources/status','/v1/medications?limit=100',`/v1/medications/${medication.id}/offers?include_estimates=true&limit=100`]){
+   for(const path of ['/v1/sources/status','/v1/normalization/backfill/status','/v1/medications?limit=100',`/v1/medications/${medication.id}/offers?include_estimates=true&limit=100`]){
     const response=await fetch(origin+path,{headers:{authorization:'Bearer '+token},signal:AbortSignal.timeout(10000)});if(response.status!==200)throw Error('RESTORE_API_READ_FAILED');
     const body=await response.json();
     if(path.startsWith('/v1/sources')){
      if(body.sources.length!==snapshot.tables.sources.length)throw Error('RESTORE_API_SOURCE_MISMATCH');
      for(const source of body.sources){const archivedSource=snapshot.tables.sources.find(s=>s.slug===source.source);if(!archivedSource||source.listings!==snapshot.tables.listings.filter(l=>l.source_id===archivedSource.id).length)throw Error('RESTORE_API_COVERAGE_MISMATCH');}
+    }else if(path.startsWith('/v1/normalization')){
+     if(body.run?.id!==snapshot.tables.medication_backfill_runs.at(-1)?.id)throw Error('RESTORE_API_BACKFILL_STATUS_MISMATCH');
     }else if(path.includes('/offers')){
      if(body.medication.id!==medication.id||!body.items.length)throw Error('RESTORE_API_QUOTE_MISSING');
      for(const offer of body.items){const expected=snapshot.tables.offers.find(o=>o.id===offer.offer_id);if(!expected||offer.price_cents!==expected.price_cents||offer.ordering_quantity!==expected.quantity||offer.currency!==expected.currency)throw Error('RESTORE_API_QUOTE_MISMATCH');}

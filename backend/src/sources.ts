@@ -4,7 +4,8 @@ import {createRequire} from 'node:module';
 const robotsParser = createRequire(import.meta.url)('robots-parser') as (url:string,text:string)=>{isAllowed:(url:string,agent:string)=>boolean|undefined;getCrawlDelay:(agent:string)=>number|undefined};
 import {load} from 'cheerio';
 import {setTimeout as delay} from 'node:timers/promises';
-import {sources,CP_API,normalizeUrl,flattenJsonLd,isProduct,stock,cents,quantity,hash,type Json,type SourceSlug,type Listing,type Quote} from './core.js';
+import {sources,CP_API,normalizeUrl,flattenJsonLd,isProduct,stock,cents,quantity,hash,type Json,type SourceSlug,type Listing,type Quote,type MedicationIdentityCandidate} from './core.js';
+import {normalizeForm} from './normalization.js';
 export interface Snapshot {url:string;title:string;h1:string[];links:string[];product:Json|null;panel:string;buttons:{text:string;label:string;pressed:string|null}[];range:string|null;next:boolean;status:number;dom_links?:string[];}
 export class SourceAccessError extends Error {constructor(public code:string,public retryAfter:number|null=null){super(code);}}
 export class SourceClient {
@@ -115,10 +116,22 @@ export class SourceClient {
 function applyReview(base:Listing,review?:Partial<Listing>):Listing {
  if(!review)return base;
  return {...base,medication:review.medication??base.medication,
+  identity_candidate:review.identity_candidate??base.identity_candidate,
   sold_as:review.sold_as??base.sold_as,
   content_quantity:'content_quantity' in review?review.content_quantity!:base.content_quantity,
   content_unit:'content_unit' in review?review.content_unit!:base.content_unit,
   metadata:{...base.metadata,...review.metadata}};
+}
+function identityFromTitle(title:string,brandName:string|null):MedicationIdentityCandidate|undefined {
+ if(/\b\d+(?:\.\d+)?\s*[-–/]\s*\d+(?:\.\d+)?\s*(?:mcg|µg|μg|ug|mg|g|u|units?|iu|meq|%)/i.test(title)||/\b\d+(?:\.\d+)?\s*(?:mcg|µg|μg|ug|mg|g|u|units?|iu|meq|%)\s*\/\s*\d+(?:\.\d+)?\s*(?:mcg|µg|μg|ug|mg|u|units?|iu|meq|%)/i.test(title))return undefined;
+ const strength=title.match(/\b\d+(?:\.\d+)?\s*(?:mcg|µg|μg|ug|mg|g|u|units?|iu|meq|%)(?:\s*\/\s*(?:\d+(?:\.\d+)?\s*)?(?:ml|l|g|tablet|capsule|dose))?/i)?.[0];
+ const form=normalizeForm(title);if(!strength||!form)return undefined;
+ const offset=title.toLowerCase().indexOf(strength.toLowerCase());
+ const name=title.slice(0,offset).replace(/\([^)]*\)/g,' ').replace(/\b(?:extended release|delayed release|immediate release|ER|XR|XL|SR|DR|EC)\b/ig,' ').replace(/\s+/g,' ').trim();if(!name)return undefined;
+ const route=title.match(/\b(oral|topical|ophthalmic|otic|nasal|inhalation|rectal|vaginal|subcutaneous|intramuscular|intravenous|transdermal)\b/i)?.[1]??null;
+ const release=title.match(/\b(extended release|delayed release|immediate release|ER|XR|XL|SR|DR|EC)\b/i)?.[1]??null;
+ const species=/\b(?:dogs?|canine)\b/i.test(title)?['dog']:/\b(?:cats?|feline)\b/i.test(title)?['cat']:[];
+ return {name,strength,form,route,release_type:release,brand_name:brandName,species};
 }
 export function healthwarehouse(snapshot:Snapshot,review?:Partial<Listing>):{listing:Listing;offers:Quote[]}{
  const p=snapshot.product;if(!p||!p.sku||!p.name)throw Error('NO_PRODUCT');
@@ -130,8 +143,9 @@ export function healthwarehouse(snapshot:Snapshot,review?:Partial<Listing>):{lis
  let sold_as=unit,content_quantity:string|null=null,content_unit:string|null=null;
  if(['tablet','capsule'].includes(unit)&&!packed){content_quantity='1';content_unit=unit;}
  if(packed&&/tablets?|capsules?/i.test(title)){content_quantity=quantity(packed[1]);content_unit=/capsules?/i.test(title)?'capsule':'tablet';sold_as='pack';}
- const volume=title.match(/(?:^|[\s-])(\d+(?:\.\d+)?)\s*(ml|g)\s*(?:bottle|vial|tube|$)/i);if(volume){content_quantity=quantity(volume[1]);content_unit=volume[2].toLowerCase()==='g'?'gram':'ml';sold_as=/vial/i.test(title)?'vial':/tube/i.test(title)?'tube':'bottle';}
- const listing:Listing=applyReview({source_product_key:String(p.sku),source_name:title,url:snapshot.url,brand_name:(p.brand as Json)?.name==='Generic'?null:String((p.brand as Json)?.name??'')||null,sold_as,content_quantity,content_unit,metadata:{source_unit_label:unit,source_product_name:title,...(/for dogs?/i.test(title)?{species_labels:['dog']}:/for cats?/i.test(title)?{species_labels:['cat']}:{}),...(title.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*lbs?/i)?{source_weight_label:title.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*lbs?/i)![0]}:{})}},review);
+ const volume=title.match(/(?:^|[\s-])(\d+(?:\.\d+)?)\s*(ml|g)\s*(?:bottle|vial|tube|$)/i);if(volume){content_quantity=quantity(volume[1]);content_unit=volume[2].toLowerCase()==='g'?'g':'ml';sold_as=/vial/i.test(title)?'vial':/tube/i.test(title)?'tube':'bottle';}
+ const brandName=(p.brand as Json)?.name==='Generic'?null:String((p.brand as Json)?.name??'')||null;
+ const listing:Listing=applyReview({source_product_key:String(p.sku),source_name:title,url:snapshot.url,brand_name:brandName,sold_as,content_quantity,content_unit,identity_candidate:identityFromTitle(title,brandName),metadata:{source_unit_label:unit,source_product_name:title,...(/for dogs?/i.test(title)?{species_labels:['dog']}:/for cats?/i.test(title)?{species_labels:['cat']}:{}),...(title.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*lbs?/i)?{source_weight_label:title.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*lbs?/i)![0]}:{})}},review);
  const raw=Array.isArray(p.offers)?p.offers:[p.offers];
  const offers=raw.map(v=>v as Json).filter(o=>radioQuantities.includes(String((o.eligibleQuantity as Json)?.value))).map(o=>({quantity:quantity((o.eligibleQuantity as Json).value),price_cents:cents(o.price),currency:'USD' as const,availability:stock(o.availability),seller_key:'healthwarehouse',location_key:'online-us',program_key:'cash',terms:{quote_kind:'source_product_total',shipping:null,source_currency:o.priceCurrency},active:true,valid_until:null}));
  if(!offers.length)throw Error('NO_VALIDATED_ORDERING_QUANTITIES');if(offers.some(x=>x.terms.source_currency!=='USD'))throw Error('CURRENCY_MISMATCH');
@@ -148,6 +162,7 @@ export async function costplus(client:SourceClient,row:Json,url:string,quantitie
  const listing:Listing=applyReview({source_product_key:sourceProductKey??'url:'+new URL(url).pathname,source_name:title,url,
   brand_name:row.brand_generic==='Brand'?String(row.brand_name):null,sold_as:isLoose?String(row.form).toLowerCase():'unresolved_api_unit',
   content_quantity:isLoose?'1':null,content_unit:isLoose?String(row.form).toLowerCase():null,
+  identity_candidate:{name:String(row.medication_name),strength:String(row.strength),form:String(row.form),route:null,release_type:null,brand_name:row.brand_generic==='Brand'?String(row.brand_name):null,ndc:String(row.ndc),species:[]},
   metadata:{ndc:String(row.ndc),catalog_name:row.medication_name,catalog_strength:row.strength,catalog_form:row.form,brand_generic:row.brand_generic,
    medispan_pack_size:row.medispan_pack_size,medispan_pack_size_units:row.medispan_pack_size_units,medispan_quantity:row.medispan_quantity,
    collection_method:'documented_public_api',catalog_listed:true}},review);
