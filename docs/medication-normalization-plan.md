@@ -1,6 +1,6 @@
 # Medication identity and value normalization plan
 
-Status: Milestone 1 implemented and E2E-verified locally; deployment/shadow observation pending. Milestone 2 is not implemented.
+Status: Milestones 1 and 2 are implemented and E2E-verified locally; deployment, production-like restore rehearsal, and reviewed execution are pending.
 Last updated: 2026-09-12
 Scope: PostgreSQL pricing service in `backend/`, household service in `MedAPI/`, and their API contract
 
@@ -354,7 +354,15 @@ Milestone 1 exit criteria:
 
 Scope: every medication, pharmacy listing, and applicable `MedAPI` record created before the Milestone 1 cutover.
 
-Implementation status: not started. Existing production records intentionally remain legacy records until this milestone is reviewed and authorized.
+Implementation status (2026-09-12): the pricing-database dry-run, immutable staging ledger, explicit review and collision gates, transactional apply, reconciliation, compensation, superseded-ID API resolution, and legacy-safe `MedAPI` reads are implemented on the backfill feature branch. The local migration E2E passes. No shared database or Mongo document has been changed. A restore-tested backup, production-like rehearsal, review of the generated report, and separate execution approval remain mandatory before running it outside an isolated test database.
+
+The pricing backfill uses a dedicated `housemed_backfill` role and a global advisory lock. Staging requires a logical-backup report with `restore_verified: true` and a database-state hash matching the exact staged snapshot. Routine worker and reader roles cannot alter a plan. Each plan records the complete legacy input snapshot, frozen normalizer version, terminology version, candidate evidence, proposed canonical survivor, collision size, and proposed quantity-unit change. Decision fields are immutable; a changed source snapshot requires a new run.
+
+Application is deliberately narrower than staging. Only `approved` items are changed. `needs_review` and `unmatched` items remain legacy with explicit ledger states. A collision is never approved by the ordinary approval command: the reviewer must add `--approve-collisions`. Apply rechecks the full snapshot hash, updates all approved rows in one transaction, appends match evidence, and reconciles immutable listing fields, crawl pages, offers, and offer history. A failed invariant rolls the transaction back.
+
+Compensation restores the original medication rows, listing IDs, quantity units, and metadata when no new references or conflicting changes have appeared. Backfill-created component rows are removed, while append-only match and event evidence remains. Price observations and price history are never deleted or rewritten.
+
+Existing `MedAPI` documents that predate canonical IDs remain readable as `normalizationStatus: "needs_review"` with pricing disabled. Records with a superseded canonical ID are resolved by the pricing API and adopt the active ID on their next successful server-authoritative refresh. Legacy free text lacking strength, form, or physical quantity unit is never guessed into a canonical medication; the user must reselect a verified catalog result.
 
 Deliverables:
 

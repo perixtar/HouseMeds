@@ -13,7 +13,7 @@ const host=resolve('.cache/pgsock'),port=65431,dbName=`housemed_normalization_e2
 const bootstrap=new pg.Pool({host,port,database:'postgres',max:1});let admin:pg.Pool|undefined,worker:pg.Pool|undefined,reader:pg.Pool|undefined,api:ReturnType<typeof buildApi>|undefined;
 try{
  const dataDirectory=(await bootstrap.query('show data_directory')).rows[0].data_directory;assert.equal(resolve(dataDirectory),resolve('.cache/pg-test'),'Refuse E2E work outside the isolated test cluster');
- for(const role of ['housemed_worker','housemed_reader','anon','authenticated','service_role'])if(!(await bootstrap.query('select 1 from pg_roles where rolname=$1',[role])).rowCount)await bootstrap.query(`create role ${role}`);
+ for(const role of ['housemed_worker','housemed_reader','housemed_backfill','anon','authenticated','service_role'])if(!(await bootstrap.query('select 1 from pg_roles where rolname=$1',[role])).rowCount)await bootstrap.query(`create role ${role}`);
  await bootstrap.query(`create database ${dbName}`);admin=new pg.Pool({host,port,database:dbName,max:1});
  for(const filename of (await readdir('supabase/migrations')).filter(x=>x.endsWith('.sql')).sort()){const sql=(await readFile('supabase/migrations/'+filename,'utf8')).replace(/create role housemed_\w+ nologin;/g,'');await admin.query(sql);}
  await admin.query('alter role housemed_worker login; alter role housemed_reader login');worker=new pg.Pool({host,port,database:dbName,user:'housemed_worker',max:2});reader=new pg.Pool({host,port,database:dbName,user:'housemed_reader',max:2});

@@ -17,6 +17,7 @@
     "crawl": "tsx src/cli.ts",
     "pretest": "node scripts/prepare-test-db.mjs",
     "backup": "node scripts/backup.mjs",
+    "backfill:medications": "tsx scripts/backfill-normalization.ts",
     "report": "node scripts/report.mjs",
     "services": "node scripts/mac-services.mjs",
     "pilot": "tsx src/schedule.ts",
@@ -29,7 +30,8 @@
     "e2e:agent": "tsx scripts/e2e-agent.ts",
     "e2e:agent:live": "tsx scripts/e2e-agent-live.mjs",
     "e2e:normalization": "node scripts/prepare-test-db.mjs && tsx scripts/e2e-incoming-normalization.ts",
-    "e2e:normalization:live": "tsx scripts/e2e-normalization-live.ts"
+    "e2e:normalization:live": "tsx scripts/e2e-normalization-live.ts",
+    "e2e:backfill": "node scripts/prepare-test-db.mjs && tsx --test --test-name-pattern='backfill stages' tests/database.test.ts && tsx scripts/e2e-backfill-backup.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",

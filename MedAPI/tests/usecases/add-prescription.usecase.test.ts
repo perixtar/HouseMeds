@@ -32,6 +32,7 @@ describe('addPrescription', () => {
       getLatestPrices: vi.fn(async (requests: PriceQuoteRequest[]) =>
         requests.map((r) => ({
           medicineLineId: r.medicineLineId,
+          requestedMedicationId: r.medicationId,
           medicationId: r.medicationId,
           name: 'Amoxicillin 500 mg Capsule',
           genericName: 'amoxicillin',
@@ -99,5 +100,42 @@ describe('addPrescription', () => {
 
     expect(repository.create).not.toHaveBeenCalled();
     expect(jobQueue.enqueuePriceComparisonJob).not.toHaveBeenCalled();
+  });
+
+  it('adopts an authenticated active ID when the submitted canonical ID was superseded', async () => {
+    const repository = fakeRepository();
+    const addPrescription = makeAddPrescription(
+      repository,
+      {
+        searchMedications: vi.fn(async () => []),
+        getLatestPrices: vi.fn(async (requests: PriceQuoteRequest[]) =>
+          requests.map((request) => ({
+            medicineLineId: request.medicineLineId,
+            requestedMedicationId: request.medicationId,
+            medicationId: '8',
+            name: 'Lisinopril 20 mg tablet',
+            genericName: 'lisinopril',
+            strength: '20 mg',
+            form: 'tablet' as const,
+            quantityUnit: request.quantityUnit,
+            unitPrice: 0.074,
+            total: 6.66,
+          })),
+        ),
+      },
+      fakeJobQueue(),
+    );
+
+    const result = await addPrescription({
+      householdId: 'h1',
+      members: [
+        {
+          nickname: 'Rex',
+          medicines: [{ medicationId: '7', quantity: 90, quantityUnit: 'tablet' }],
+        },
+      ],
+    });
+
+    expect(result.members[0]?.medicines[0]?.medicationId).toBe('8');
   });
 });

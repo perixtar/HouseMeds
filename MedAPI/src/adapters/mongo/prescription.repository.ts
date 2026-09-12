@@ -3,19 +3,82 @@ import type { Collection } from 'mongodb';
 import { getDb } from './mongo-client';
 import type { PrescriptionRepository } from '../../ports/prescription-repository.port';
 import type {
+  Medicine,
   PriceComparisonRecommendation,
   PrescriptionHousehold,
   PrescriptionSummary,
 } from '../../domain/types';
+import { medicationForms, quantityUnits } from '../../domain/types';
 
 // Server-side deadline, backstop for mongo-client.ts's client-side timeouts.
 const OPERATION_TIMEOUT_MS = 5000;
 
 type PrescriptionDoc = Omit<PrescriptionHousehold, 'id'> & { _id: string };
 
-function toDomain(doc: PrescriptionDoc): PrescriptionHousehold {
+function storedMedicine(raw: Record<string, unknown>): Medicine {
+  const valid =
+    raw.normalizationStatus !== 'needs_review' &&
+    typeof raw.medicationId === 'string' &&
+    /^[1-9]\d{0,17}$/.test(raw.medicationId) &&
+    typeof raw.strength === 'string' &&
+    raw.strength.length > 0 &&
+    medicationForms.includes(raw.form as (typeof medicationForms)[number]) &&
+    quantityUnits.includes(raw.quantityUnit as (typeof quantityUnits)[number]);
+  const base = {
+    id: String(raw.id ?? randomUUID()),
+    name: String(raw.name ?? ''),
+    genericName: String(raw.genericName ?? raw.name ?? ''),
+    quantity: Number(raw.quantity ?? 0),
+    deleted: raw.deleted === true,
+  };
+  if (!valid)
+    return {
+      ...base,
+      normalizationStatus: 'needs_review',
+      medicationId: null,
+      strength: null,
+      form: null,
+      quantityUnit: null,
+      unitPrice: 0,
+      total: 0,
+    };
+  return {
+    ...base,
+    normalizationStatus: 'verified',
+    medicationId: raw.medicationId as string,
+    strength: raw.strength as string,
+    form: raw.form as (typeof medicationForms)[number],
+    quantityUnit: raw.quantityUnit as (typeof quantityUnits)[number],
+    unitPrice: Number(raw.unitPrice ?? 0),
+    total: Number(raw.total ?? 0),
+  };
+}
+
+export function toDomain(doc: PrescriptionDoc): PrescriptionHousehold {
   const { _id, ...rest } = doc;
-  return { id: _id, ...rest };
+  const members = (Array.isArray(rest.members) ? rest.members : []).map((member) => ({
+    ...member,
+    medicines: (Array.isArray(member.medicines) ? member.medicines : []).map((medicine) =>
+      storedMedicine(medicine as unknown as Record<string, unknown>),
+    ),
+  }));
+  const totalPrice = members
+    .flatMap((member) => member.medicines)
+    .filter((medicine) => !medicine.deleted)
+    .reduce((total, medicine) => total + medicine.total, 0);
+  const unresolved = members.some((member) =>
+    member.medicines.some(
+      (medicine) => !medicine.deleted && medicine.normalizationStatus !== 'verified',
+    ),
+  );
+  return {
+    id: _id,
+    ...rest,
+    members,
+    totalPrice: Math.round(totalPrice * 100) / 100,
+    priceComparisonStatus: unresolved ? 'unavailable' : rest.priceComparisonStatus,
+    priceComparisons: unresolved ? [] : rest.priceComparisons,
+  };
 }
 
 async function collection(): Promise<Collection<PrescriptionDoc>> {
@@ -52,19 +115,19 @@ export class MongoPrescriptionRepository implements PrescriptionRepository {
       ? { householdId }
       : { householdId, deleted: false };
     const docs = await col
-      .find(filter, {
-        projection: { _id: 1, submittedAt: 1, lastUpdatedAt: 1, totalPrice: 1 },
-        maxTimeMS: OPERATION_TIMEOUT_MS,
-      })
+      .find(filter, { maxTimeMS: OPERATION_TIMEOUT_MS })
       .sort({ submittedAt: -1 })
       .toArray();
 
-    return docs.map((doc) => ({
-      id: doc._id,
-      submittedAt: doc.submittedAt,
-      lastUpdatedAt: doc.lastUpdatedAt,
-      totalPrice: doc.totalPrice,
-    }));
+    return docs.map((doc) => {
+      const normalized = toDomain(doc);
+      return {
+        id: normalized.id,
+        submittedAt: normalized.submittedAt,
+        lastUpdatedAt: normalized.lastUpdatedAt,
+        totalPrice: normalized.totalPrice,
+      };
+    });
   }
 
   async replace(prescription: PrescriptionHousehold): Promise<PrescriptionHousehold> {

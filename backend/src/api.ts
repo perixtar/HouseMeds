@@ -36,11 +36,25 @@ export function buildApi(pool:pg.Pool,token:string){
   count(*) filter(where o.last_checked_at<now()-interval '24 hours' or o.valid_until<=now()) as stale from pricing.offers o join pricing.listings l on l.id=o.listing_id where l.source_id=s.id) p on true order by s.slug`);
   return rows;
  }
+ async function resolveMedication(id:string){
+  const {rows}=await pool.query(`with recursive chain(id,superseded_by_id,path,depth) as(
+   select id,superseded_by_id,array[id],0 from pricing.medications where id=$1
+   union all select next.id,next.superseded_by_id,chain.path||next.id,chain.depth+1 from chain
+    join pricing.medications next on next.id=chain.superseded_by_id where chain.depth<20 and not next.id=any(chain.path)
+  ) select ${medicationColumns},case when m.id<>$1::bigint then $1::text end as resolved_from_id
+   from chain join pricing.medications m on m.id=chain.id where chain.superseded_by_id is null order by chain.depth desc limit 1`,[id]);
+  return rows[0]??null;
+ }
  app.get('/v1/sources/status',async()=>({as_of:new Date().toISOString(),sources:await status()}));
+ app.get('/v1/normalization/backfill/status',async()=>({as_of:new Date().toISOString(),run:(await pool.query('select id,status,normalization_version,terminology_version,summary,reconciliation,created_at,approved_at,applied_at,compensated_at,failure_code from pricing.medication_backfill_runs order by id desc limit 1')).rows[0]??null}));
  app.get<{Querystring:{q?:string;limit?:number;cursor?:string}}>('/v1/medications',{schema:{querystring:{type:'object',additionalProperties:false,properties:{q:{type:'string',minLength:2,maxLength:120},limit:{type:'integer',minimum:1,maximum:100,default:30},cursor:{type:'string',pattern:idPattern}}}}},async(req)=>{
   const limit=req.query.limit??30,search=req.query.q?.replace(/[\\%_]/g,'\\$&')??null;
   const {rows}=await pool.query(`select ${medicationColumns} from pricing.medications m where m.superseded_by_id is null and ($1::text is null or coalesce(m.canonical_name,m.name) ilike '%'||$1||'%' escape '\\' or m.name ilike '%'||$1||'%' escape '\\') and m.id>$2::bigint order by m.id limit $3`,[search,req.query.cursor??'0',limit+1]);
   const more=rows.length>limit;return {items:rows.slice(0,limit),next_cursor:more?rows[limit-1].id:null};
+ });
+ app.get<{Params:{id:string}}>('/v1/medications/:id',{schema:{params:{type:'object',required:['id'],properties:{id:{type:'string',pattern:idPattern}}}}},async(req,reply)=>{
+  const medication=await resolveMedication(req.params.id);if(!medication)return reply.code(404).send({error:'medication_not_found'});
+  return {requested_medication_id:req.params.id,resolved_medication_id:String(medication.id),medication};
  });
  app.get<{Querystring:{q?:string;source?:string;limit?:number;cursor?:string}}>('/v1/listings',{schema:{querystring:{type:'object',additionalProperties:false,properties:{q:{type:'string',minLength:2,maxLength:120},source:{type:'string',enum:sourceValues},limit:{type:'integer',minimum:1,maximum:100,default:20},cursor:{type:'string',pattern:idPattern}}}}},async(req)=>{
   const limit=req.query.limit??20,search=req.query.q?.replace(/[\\%_]/g,'\\$&')??null;
@@ -54,11 +68,11 @@ export function buildApi(pool:pg.Pool,token:string){
   const query=req.query,includeEstimates=req.query.include_estimates===true;
   if(Boolean(query.quantity)!==Boolean(query.unit))return reply.code(400).send({error:'quantity_and_unit_required_together'});
   let q:string|null=null;try{q=query.quantity?quantity(query.quantity):null;}catch{return reply.code(400).send({error:'invalid_quantity'});}
-  const entity=(await pool.query(sourceOnly?`select ${listingColumns} ${listingJoins} where l.id=$1`:`select ${medicationColumns} from pricing.medications m where m.id=$1 and m.superseded_by_id is null`,[req.params.id])).rows[0];
+  const entity=sourceOnly?(await pool.query(`select ${listingColumns} ${listingJoins} where l.id=$1`,[req.params.id])).rows[0]:await resolveMedication(req.params.id);
   if(!entity)return reply.code(404).send({error:sourceOnly?'listing_not_found':'medication_not_found'});
   const identityColumn=sourceOnly?'l.id':'l.medication_id',matchingScope=sourceOnly?'source_listing_only':'reviewed_medication';
   const asOf=new Date().toISOString(),limit=query.limit??50;
-  const values=[asOf,req.params.id,q,query.unit??null,query.source??null,query.location??null,query.program??null];
+  const identityId=sourceOnly?req.params.id:String(entity.id),values=[asOf,identityId,q,query.unit??null,query.source??null,query.location??null,query.program??null];
   const joins=`from pricing.offers o join pricing.listings l on l.id=o.listing_id join pricing.sources s on s.id=l.source_id where ${identityColumn}=$2::bigint and ($5::text is null or s.slug=$5) and ($6::text is null or o.location_key=$6) and ($7::text is null or o.program_key=$7)`;
   const exact=`($3::numeric is null or (o.quantity*l.content_quantity=$3::numeric and l.content_unit=$4))`;
   const {rows}=await pool.query(`select o.id as offer_id,l.id as listing_id,s.slug as source,l.source_name,l.brand_name,l.match_status,case when l.match_status='verified' then l.medication_id end as medication_id,l.sold_as,l.content_quantity,l.content_unit,l.url as purchase_url,
@@ -75,7 +89,7 @@ export function buildApi(pool:pg.Pool,token:string){
    from pricing.listings l join pricing.sources s on s.id=l.source_id left join pricing.offers o on o.listing_id=l.id where ${identityColumn}=$1 group by s.slug`,[req.params.id,q,query.unit??null])).rows;
   for(const source of sourceOnly?[entity.source]:sourceValues)if(!query.source||query.source===source){const item=known.find(x=>x.slug===source);if(!item)exclusions.push({source,reason:'not_matched',offers:0});else if(q&&!item.has_exact)exclusions.push({source,reason:'unsupported_quantity',offers:0});}
   const more=rows.length>limit;
-  return {as_of:asOf,...(sourceOnly?{listing:entity}:{medication:entity}),matching_scope:matchingScope,quote_scope:includeEstimates?'including_estimates':'eligible_only',requested_quantity:q,requested_unit:query.unit??null,items:rows.slice(0,limit).map(row=>({...row,matching_scope:matchingScope})),next_cursor:more?rows[limit-1].offer_id:null,
+  return {as_of:asOf,...(sourceOnly?{listing:entity}:{medication:entity,requested_medication_id:req.params.id,resolved_medication_id:String(entity.id)}),matching_scope:matchingScope,quote_scope:includeEstimates?'including_estimates':'eligible_only',requested_quantity:q,requested_unit:query.unit??null,items:rows.slice(0,limit).map(row=>({...row,matching_scope:matchingScope})),next_cursor:more?rows[limit-1].offer_id:null,
    quote_status:rows.length?(rows.slice(0,limit).some(x=>x.purchase_verification_required)?'includes_unconfirmed_estimates':'available'):q?'no_eligible_exact_quote':'no_eligible_offers',sources:await status(),exclusions};
  });
  }

@@ -54,7 +54,7 @@ try{
   const bootstrap=new pg.Pool({host:socket,port:65431,database:'postgres',max:1});
   try{
    assert.equal(resolve((await bootstrap.query('show data_directory')).rows[0].data_directory),join(root,'.cache/pg-test'));
-   const roles=(await bootstrap.query('select rolname,rolcanlogin from pg_roles where rolname=any($1)',[['housemed_worker','housemed_reader','anon','authenticated','service_role']])).rows;assert.equal(roles.length,5,'Existing isolated test roles are required; this harness does not create or alter roles.');
+   const roles=(await bootstrap.query('select rolname,rolcanlogin from pg_roles where rolname=any($1)',[['housemed_worker','housemed_reader','housemed_backfill','anon','authenticated','service_role']])).rows;assert.equal(roles.length,6,'Existing isolated test roles are required; this harness does not create or alter roles.');
    for(const role of ['housemed_worker','housemed_reader'])assert.equal(roles.find(x=>x.rolname===role).rolcanlogin,true);
    await bootstrap.query('create database '+database);createdDatabase=true;
   }finally{await bootstrap.end();}
