@@ -43,6 +43,8 @@ Deploy `dist/` to your frontend host. Vite includes `VITE_` values in the build:
 
 The supplied API token currently authorizes one shared development household. Members are read from the database; member administration is outside this prescription-intake flow. The main app uses the household prototype’s deals screens with saved AWS prescriptions. `deals.js` supplies clearly labeled example prices; no live quote, order, or prescription transfer is made. The AWS chat, image review, and prescription persistence remain connected to the shared backend.
 
+`api.js` also exports `callDealsApi()` for the new single `GET /v1/deals` endpoint. It returns saved-medicine fields, eligible database offers, and clearly labeled Exa research candidates from additional pharmacies. The existing screenshot prototype is not yet switched to this endpoint; its example prices remain visibly marked as mock until the AgentCore/API deployment and UI hookup are complete.
+
 See [the API contract, examples, architecture, and deployment instructions](../backend/PRESCRIPTION_API.md).
 
 ## Mock household prototype

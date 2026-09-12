@@ -70,6 +70,10 @@ export function buildPrescriptionApi(config: PrescriptionApiConfig) {
     const {result, session} = await invoke({action: 'state', request_id: randomUUID()}, req.headers['x-housemed-session-id']);
     return reply.header('X-Housemed-Session-Id', session).code(result.status === 'error' ? 502 : 200).send(result);
   });
+  app.get('/v1/deals', async (req, reply) => {
+    const {result, session} = await invoke({action: 'deals', request_id: randomUUID()}, req.headers['x-housemed-session-id']);
+    return reply.header('X-Housemed-Session-Id', session).code(result.status === 'error' ? 502 : 200).send(result);
+  });
   app.post('/v1/prescription-chat', async (req, reply) => {
     const parsed = prescriptionInput.safeParse(req.body);
     if (!parsed.success || (parsed.data.action === 'prepare' && !parsed.data.fields))

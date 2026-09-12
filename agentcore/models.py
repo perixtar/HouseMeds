@@ -34,7 +34,7 @@ class Photo(BaseModel):
 
 class Request(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    action: Literal["chat", "state", "confirm", "prepare"] = "chat"
+    action: Literal["chat", "state", "deals", "confirm", "prepare"] = "chat"
     household_id: UUID
     request_id: UUID
     message: str = Field(default="", max_length=4000)

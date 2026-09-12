@@ -42,6 +42,7 @@ def prepare():
     path.write_text(json.dumps(state)); path.chmod(0o600)
     migration = (ROOT.parent / "backend/supabase/migrations/20260912210000_prescription_intake.sql").read_text()
     migration += (ROOT.parent / "backend/supabase/migrations/20260912214500_prescription_photo_batches.sql").read_text()
+    migration += (ROOT.parent / "backend/supabase/migrations/20260912220000_mcp_pricing_read.sql").read_text()
     sql = migration + f"""\n-- Dedicated service account and explicitly synthetic acceptance household.
 alter role housemed_mcp password '{verifier}';
 insert into housemed.households(id,name) values('{household_id}','HouseMeds test household');
@@ -51,6 +52,8 @@ insert into supabase_migrations.schema_migrations(version,name,statements)
 on conflict(version) do nothing;
 insert into supabase_migrations.schema_migrations(version,name,statements)
  values('20260912214500','prescription_photo_batches',array['See repository migration']) on conflict(version) do nothing;
+insert into supabase_migrations.schema_migrations(version,name,statements)
+ values('20260912220000','mcp_pricing_read',array['Read-only pricing access for HouseMeds deals; see repository migration']) on conflict(version) do nothing;
 select 'HouseMeds prescription schema ready' as status;
 """
     (CACHE / "database-setup.sql").write_text(sql)
