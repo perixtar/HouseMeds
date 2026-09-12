@@ -59,6 +59,7 @@ export function makeUpdatePrescription(
         form: 'tablet',
         quantity: med.quantity,
         quantityUnit: med.quantityUnit,
+        normalizationStatus: 'verified' as const,
         // Placeholder until refreshPrices runs below.
         unitPrice: 0,
         total: 0,

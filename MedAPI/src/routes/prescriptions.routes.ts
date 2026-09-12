@@ -57,13 +57,14 @@ const medicationSearchResponseSchema = z.object({
 
 const medicineResponseSchema = z.object({
   id: z.string(),
-  medicationId: z.string(),
+  medicationId: z.string().nullable(),
+  normalizationStatus: z.enum(['verified', 'needs_review']),
   name: z.string(),
   genericName: z.string(),
-  strength: z.string(),
-  form: z.enum(medicationForms),
+  strength: z.string().nullable(),
+  form: z.enum(medicationForms).nullable(),
   quantity: z.number(),
-  quantityUnit: z.enum(quantityUnits),
+  quantityUnit: z.enum(quantityUnits).nullable(),
   unitPrice: z.number(),
   total: z.number(),
   deleted: z.boolean(),

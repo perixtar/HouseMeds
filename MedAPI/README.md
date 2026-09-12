@@ -316,9 +316,11 @@ sends it automatically.
 Implemented: all routes, use-cases, domain logic, and adapters (both `mock` and
 `aws` target sources) for registration/login/password-reset, prescription
 CRUD with soft-delete, canonical medication IDs and exact quantity units,
-server-authoritative price refresh, and the async price-comparison worker. `dev`
-was previously deployed; the incoming-normalization contract must be redeployed
-before clients rely on it.
+server-authoritative price refresh, legacy-record `needs_review` responses,
+superseded-ID adoption, and the async price-comparison worker. Old records lacking
+a complete canonical identity stay readable with null structured fields and no
+price until the user reselects a catalog result. `dev` was previously deployed;
+the normalization contracts must be redeployed before clients rely on them.
 Not yet done:
 
 - Deployment of the incoming-normalization contract to the shared environment.
@@ -326,5 +328,3 @@ Not yet done:
 - A `/confirm-signup` endpoint — Cognito is configured to confirm new accounts via
   an emailed link (handled entirely by Cognito's hosted UI), so no app-side route
   is needed for the current signup flow.
-- Existing Mongo prescription records still need the separate normalization
-  backfill milestone.

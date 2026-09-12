@@ -1,6 +1,6 @@
 import type { PrescriptionRepository } from '../ports/prescription-repository.port';
 import type { PriceComparison } from '../ports/price-comparison.port';
-import type { PriceComparisonRecommendation } from '../domain/types';
+import type { PriceComparisonRecommendation, VerifiedMedicine } from '../domain/types';
 import { listActiveMedicines } from '../domain/prescription';
 import { logger } from '../common/logger';
 
@@ -28,14 +28,26 @@ export function makeGetPriceComparison(
       return;
     }
 
-    const activeMedicines = listActiveMedicines(prescription.members).map((med) => ({
-      medicineId: med.id,
-      medicationId: med.medicationId,
-      name: med.name,
-      genericName: med.genericName,
-      quantity: med.quantity,
-      quantityUnit: med.quantityUnit,
-    }));
+    const active = listActiveMedicines(prescription.members);
+    if (active.some((med) => med.normalizationStatus !== 'verified')) {
+      await prescriptionRepository.markPriceComparisonUnavailable(prescription.id);
+      return;
+    }
+    const activeMedicines = active
+      .filter(
+        (med): med is VerifiedMedicine =>
+          med.normalizationStatus === 'verified' &&
+          med.medicationId !== null &&
+          med.quantityUnit !== null,
+      )
+      .map((med) => ({
+        medicineId: med.id,
+        medicationId: med.medicationId,
+        name: med.name,
+        genericName: med.genericName,
+        quantity: med.quantity,
+        quantityUnit: med.quantityUnit,
+      }));
 
     if (activeMedicines.length === 0) {
       await prescriptionRepository.savePriceComparisons(prescription.id, []);

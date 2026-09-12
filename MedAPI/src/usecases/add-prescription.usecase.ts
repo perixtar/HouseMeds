@@ -7,6 +7,7 @@ import type {
   Member,
   PrescriptionHousehold,
   QuantityUnit,
+  VerifiedMedicine,
 } from '../domain/types';
 import { computePrescriptionTotal } from '../domain/prescription';
 import { PricingUnavailableError } from '../errors/domain-errors';
@@ -47,6 +48,7 @@ export function makeAddPrescription(
         form: 'tablet',
         quantity: med.quantity,
         quantityUnit: med.quantityUnit,
+        normalizationStatus: 'verified' as const,
         unitPrice: 0,
         total: 0,
         deleted: false,
@@ -84,9 +86,30 @@ export async function refreshPrices(
   members: Member[],
   pricingClient: PricingClient,
 ): Promise<void> {
-  const activeMedicines: Medicine[] = members
+  const active: Medicine[] = members
     .flatMap((m) => m.medicines)
     .filter((med) => !med.deleted);
+
+  if (
+    active.some(
+      (med) =>
+        med.normalizationStatus !== 'verified' ||
+        med.medicationId === null ||
+        med.strength === null ||
+        med.form === null ||
+        med.quantityUnit === null,
+    )
+  ) {
+    throw new PricingUnavailableError('A medication requires normalization review');
+  }
+  const activeMedicines = active.filter(
+    (med): med is VerifiedMedicine =>
+      med.normalizationStatus === 'verified' &&
+      med.medicationId !== null &&
+      med.strength !== null &&
+      med.form !== null &&
+      med.quantityUnit !== null,
+  );
 
   if (activeMedicines.length === 0) return;
 
@@ -104,17 +127,19 @@ export async function refreshPrices(
     const quote = quoteByLineId.get(med.id);
     if (
       !quote ||
-      quote.medicationId !== med.medicationId ||
+      quote.requestedMedicationId !== med.medicationId ||
       quote.quantityUnit !== med.quantityUnit
     ) {
       throw new PricingUnavailableError(
         'No exact canonical medication quote is available',
       );
     }
+    med.medicationId = quote.medicationId;
     med.name = quote.name;
     med.genericName = quote.genericName;
     med.strength = quote.strength;
     med.form = quote.form;
+    med.normalizationStatus = 'verified';
     med.unitPrice = quote.unitPrice;
     med.total = quote.total;
   }

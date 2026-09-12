@@ -11,6 +11,9 @@ export interface PriceQuoteRequest {
 
 export interface PriceQuote {
   medicineLineId: string;
+  /** ID sent by the household record; retained to authenticate a redirect. */
+  requestedMedicationId: string;
+  /** Active canonical ID, which may replace a superseded requested ID. */
   medicationId: string;
   name: string;
   genericName: string;

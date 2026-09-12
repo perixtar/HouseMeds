@@ -11,21 +11,28 @@ export interface Household {
 export interface Medicine {
   /** Household-local prescription line id. It is never a pricing catalog id. */
   id: string;
-  /** Canonical HouseMeds pricing.medications.id selected from the catalog. */
-  medicationId: string;
-  /** Server-resolved canonical display fields; clients cannot set these directly. */
   name: string;
   genericName: string;
-  strength: string;
-  form: MedicationForm;
   quantity: number;
-  quantityUnit: QuantityUnit;
-  /** Derived for display from the exact pricing API total and physical quantity. */
   unitPrice: number;
-  /** Exact total returned for the requested physical quantity. */
   total: number;
   deleted: boolean;
+  normalizationStatus: 'verified' | 'needs_review';
+  /** Canonical HouseMeds pricing.medications.id selected from the catalog. */
+  medicationId: string | null;
+  /** Server-resolved canonical display fields; clients cannot set these directly. */
+  strength: string | null;
+  form: MedicationForm | null;
+  quantityUnit: QuantityUnit | null;
 }
+
+export type VerifiedMedicine = Medicine & {
+  normalizationStatus: 'verified';
+  medicationId: string;
+  strength: string;
+  form: MedicationForm;
+  quantityUnit: QuantityUnit;
+};
 
 export const medicationForms = [
   'tablet',

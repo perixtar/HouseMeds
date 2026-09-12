@@ -49,8 +49,8 @@ async function offers(medicationId,query=''){const response=await http(`/v1/medi
 try{
  await new Promise((done,reject)=>{const server=createServer();server.once('error',reject);server.listen(port,'127.0.0.1',()=>server.close(done));});
  bootstrap=new pg.Pool({host:socket,port:65431,database:'postgres',max:1});assert.equal(resolve((await bootstrap.query('show data_directory')).rows[0].data_directory),join(root,'.cache/pg-test'));
- const roles=(await bootstrap.query("select rolname,rolcanlogin from pg_roles where rolname=any($1)",[['housemed_worker','housemed_reader','anon','authenticated','service_role']])).rows;
- assert.equal(roles.length,5,'Prepare the local test roles before running this E2E; this script never changes shared roles.');for(const name of ['housemed_worker','housemed_reader'])assert.equal(roles.find(x=>x.rolname===name).rolcanlogin,true);
+ const roles=(await bootstrap.query("select rolname,rolcanlogin from pg_roles where rolname=any($1)",[['housemed_worker','housemed_reader','housemed_backfill','anon','authenticated','service_role']])).rows;
+ assert.equal(roles.length,6,'Prepare the local test roles before running this E2E; this script never changes shared roles.');for(const name of ['housemed_worker','housemed_reader'])assert.equal(roles.find(x=>x.rolname===name).rolcanlogin,true);
  await bootstrap.query(`drop database if exists ${database} with(force)`);await bootstrap.query(`create database ${database}`);createdDatabase=true;await bootstrap.end();bootstrap=null;
  admin=new pg.Pool({host:socket,port:65431,database,max:2});
  for(const file of (await readdir(join(root,'supabase/migrations'))).filter(x=>x.endsWith('.sql')).sort())await admin.query((await readFile(join(root,'supabase/migrations',file),'utf8')).replace(/create role housemed_\w+ nologin;/g,''));

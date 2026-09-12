@@ -43,3 +43,18 @@ Deploy `dist/` to your frontend host. Vite includes `VITE_` values in the build:
 The supplied API token currently authorizes one shared development household. Members are read from the database; member administration is outside this prescription-intake flow. The separate pricing prototype is not part of prescription persistence.
 
 See [the API contract, examples, architecture, and deployment instructions](../backend/PRESCRIPTION_API.md).
+
+## Mock household prototype
+
+The separate prototype from PR #7 is preserved in `mock/`. To run it, start `npm run frontend:mock` from `backend/` and open <http://127.0.0.1:63815>. Its household members, prescriptions, deals, and assistant responses are mock data; the in-memory data resets on restart. It does not call the shared AWS prescription API.
+
+The mock host serves `mock/index.html`, `mock/app.js`, and `mock/api.js` with the shared styles and back navigation. The Vite app above remains the live AWS frontend. If the local prescription API already uses port 63815, run the mock with `FRONTEND_PORT=63816 npm run frontend:mock` and open that port instead.
+
+The mock HTTP contract is:
+
+- `GET /v1/me/household`
+- `POST /v1/houses/:houseId/members`
+- `DELETE /v1/members/:memberId`
+- `GET /v1/members/:memberId/prescriptions`
+- `POST /v1/members/:memberId/prescriptions`
+- `GET /v1/deals?house_id=:houseId`

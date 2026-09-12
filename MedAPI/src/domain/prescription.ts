@@ -78,6 +78,7 @@ function reconcileMedicines(existing: Medicine[], incoming: Medicine[]): Medicin
       medicationId: incomingMed.medicationId,
       quantity: incomingMed.quantity,
       quantityUnit: incomingMed.quantityUnit,
+      normalizationStatus: incomingMed.normalizationStatus,
       // Canonical display and price fields are refreshed from the pricing API.
       name: incomingMed.name,
       genericName: incomingMed.genericName,

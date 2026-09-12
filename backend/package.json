@@ -30,7 +30,10 @@
     "e2e:normalization": "node scripts/prepare-test-db.mjs && tsx scripts/e2e-incoming-normalization.ts",
     "e2e:normalization:live": "tsx scripts/e2e-normalization-live.ts",
     "prescriptions:api": "tsx src/prescription-api-server.ts",
-    "prescriptions:bundle": "esbuild src/prescription-lambda.ts --bundle --platform=node --target=node24 --format=cjs --outfile=.cache/prescription-lambda/index.cjs"
+    "prescriptions:bundle": "esbuild src/prescription-lambda.ts --bundle --platform=node --target=node24 --format=cjs --outfile=.cache/prescription-lambda/index.cjs",
+    "frontend:mock": "tsx src/household-mock.ts",
+    "backfill:medications": "tsx scripts/backfill-normalization.ts",
+    "e2e:backfill": "node scripts/prepare-test-db.mjs && tsx --test --test-name-pattern='backfill stages' tests/database.test.ts && tsx scripts/e2e-backfill-backup.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-agentcore": "^3.1131.0",
