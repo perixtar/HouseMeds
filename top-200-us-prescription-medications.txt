@@ -1,0 +1,211 @@
+Top 200 Commonly Bought/Prescribed Prescription Medications in the United States
+Source basis: ClinCalc DrugStats Database, "The Top 200 Drugs of 2024," version 2026.08, based on AHRQ MEPS prescribed medicines data.
+Source URL: https://clincalc.com/DrugStats/Top200Drugs.aspx/About.aspx
+
+Notes:
+- ClinCalc ranks drugs by total U.S. prescriptions, which is the closest public proxy for "commonly bought" prescription medications.
+- This file keeps the ClinCalc order for ranks 1-197.
+- The user specifically requested that Tazarotene, Tretinoin, Imiquimod, 5 Fluorouracil 2% solution, and Clobetasol 0.05% Cream appear in the 200-item list.
+- Tretinoin and Clobetasol already appear in the ClinCalc top 200. Clobetasol is listed here with the requested 0.05% cream form.
+- Tazarotene, Imiquimod, and Fluorouracil topical solution were added as user-required entries at positions 198-200, replacing the final three ClinCalc-ranked entries: Melatonin, Torsemide, and Polyethylene Glycol 3350.
+
+001. Atorvastatin
+002. Levothyroxine
+003. Metformin
+004. Amlodipine
+005. Lisinopril
+006. Albuterol
+007. Losartan
+008. Metoprolol
+009. Rosuvastatin
+010. Omeprazole
+011. Gabapentin
+012. Sertraline
+013. Escitalopram
+014. Semaglutide
+015. Dextroamphetamine; Dextroamphetamine Saccharate; Amphetamine; Amphetamine Aspartate
+016. Pantoprazole
+017. Bupropion
+018. Hydrochlorothiazide
+019. Fluoxetine
+020. Trazodone
+021. Montelukast
+022. Amoxicillin
+023. Fluticasone
+024. Tamsulosin
+025. Apixaban
+026. Simvastatin
+027. Insulin Glargine
+028. Empagliflozin
+029. Furosemide
+030. Meloxicam
+031. Acetaminophen; Hydrocodone
+032. Tirzepatide
+033. Methylphenidate
+034. Duloxetine
+035. Prednisone
+036. Carvedilol
+037. Famotidine
+038. Ibuprofen
+039. Buspirone
+040. Venlafaxine
+041. Tramadol
+042. Potassium Chloride
+043. Hydroxyzine
+044. Allopurinol
+045. Clopidogrel
+046. Ergocalciferol
+047. Cetirizine
+048. Ondansetron
+049. Cyclobenzaprine
+050. Spironolactone
+051. Oxycodone
+052. Estradiol
+053. Aspirin
+054. Glipizide
+055. Zolpidem
+056. Lamotrigine
+057. Alprazolam
+058. Citalopram
+059. Pregabalin
+060. Cholecalciferol
+061. Clonazepam
+062. Azithromycin
+063. Pravastatin
+064. Valsartan
+065. Ezetimibe
+066. Diclofenac
+067. Insulin Lispro
+068. Ethinyl Estradiol; Norethindrone
+069. Propranolol
+070. Latanoprost
+071. Atenolol
+072. Lisdexamfetamine
+073. Doxycycline
+074. Amoxicillin; Clavulanate
+075. Dulaglutide
+076. Hydrochlorothiazide; Lisinopril
+077. Lorazepam
+078. Fluticasone; Salmeterol
+079. Insulin Aspart
+080. Celecoxib
+081. Finasteride
+082. Quetiapine
+083. Clonidine
+084. Aripiprazole
+085. Cephalexin
+086. Alendronate
+087. Topiramate
+088. Tizanidine
+089. Dapagliflozin
+090. Acetaminophen; Oxycodone
+091. Hydrochlorothiazide; Losartan
+092. Olmesartan
+093. Testosterone
+094. Amitriptyline
+095. Folic Acid
+096. Rivaroxaban
+097. Fenofibrate
+098. Triamcinolone
+099. Paroxetine
+100. Ferrous Sulfate
+101. Loratadine
+102. Warfarin
+103. Valacyclovir
+104. Budesonide; Formoterol
+105. Ethinyl Estradiol; Norgestimate
+106. Fluticasone; Umeclidinium; Vilanterol
+107. Methocarbamol
+108. Acetaminophen
+109. Diltiazem
+110. Thyroid
+111. Baclofen
+112. Naproxen
+113. Sumatriptan
+114. Prednisolone
+115. Esomeprazole
+116. Mirtazapine
+117. Levetiracetam
+118. Norethindrone
+119. Tadalafil
+120. Nifedipine
+121. Progesterone
+122. Insulin Degludec
+123. Cyanocobalamin
+124. Hydralazine
+125. Adalimumab
+126. Azelastine
+127. Sitagliptin
+128. Glimepiride
+129. Chlorthalidone
+130. Oxybutynin
+131. Pioglitazone
+132. Ketoconazole
+133. Irbesartan
+134. Hydroxychloroquine
+135. Sulfamethoxazole; Trimethoprim
+136. Benzonatate
+137. Nitrofurantoin
+138. Isosorbide
+139. Methylprednisolone
+140. Hydrochlorothiazide; Triamterene
+141. Levocetirizine
+142. Clindamycin
+143. Atomoxetine
+144. Dexmethylphenidate
+145. Methotrexate
+146. Donepezil
+147. Desvenlafaxine
+148. Ropinirole
+149. Clobetasol 0.05% Cream
+150. Fluticasone; Vilanterol
+151. Albuterol; Ipratropium
+152. Phentermine
+153. Ofloxacin
+154. Mupirocin
+155. Verapamil
+156. Olanzapine
+157. Metronidazole
+158. Prazosin
+159. Ciprofloxacin
+160. Sildenafil
+161. Ethinyl Estradiol; Levonorgestrel
+162. Evolocumab
+163. Mesalamine
+164. Memantine
+165. Ethinyl Estradiol; Etonogestrel
+166. Diazepam
+167. Lithium
+168. Nortriptyline
+169. Timolol
+170. Cefdinir
+171. Magnesium Salts
+172. Meclizine
+173. Cyclosporine
+174. Fluconazole
+175. Rimegepant
+176. Tretinoin
+177. Lovastatin
+178. Drospirenone; Ethinyl Estradiol
+179. Tiotropium
+180. Docusate
+181. Temazepam
+182. Benazepril
+183. Brimonidine
+184. Sacubitril; Valsartan
+185. Valproate
+186. Nebivolol
+187. Acyclovir
+188. Morphine
+189. Doxazosin
+190. Amlodipine; Benazepril
+191. Nirmatrelvir; Ritonavir
+192. Emtricitabine; Tenofovir
+193. Budesonide
+194. Tacrolimus
+195. Dupilumab
+196. Enalapril
+197. Anastrozole
+198. Tazarotene
+199. Imiquimod
+200. 5 Fluorouracil 2% solution
