@@ -44,6 +44,25 @@ Each command handles one question. Use a complete question for each invocation; 
 npm run ask -- --json "Show collection coverage and the last successful collection run for each source."
 ```
 
+### Exa medication research
+
+The separate research command gives the isolated backend Codex runner access only to Exa's read-only
+web search and page-fetch tools. It produces unverified staging evidence and never writes pharmacy
+results into the pricing database:
+
+```bash
+npm run research:medicine -- --medicine "Atorvastatin" \
+  --pharmacy "Amazon Pharmacy" \
+  --location "no location/public national price" \
+  --quantities "every quantity explicitly offered"
+```
+
+Set `EXA_API_KEY` alongside a funded `OPENAI_API_KEY` in the ignored, owner-readable
+`backend/.env.agent` file. Add `--json` for the full machine-readable result. Each run stores
+redacted diagnostics and its complete result under
+`backend/data/audits/exa-medication/`. Search-indexed listing text is discovery evidence only; a
+quantity-price offer is counted as verified only when first-party evidence explicitly supports both.
+
 The assistant reads stored price observations. Prices depend on quantity, and Cost Plus estimates require explicit opt-in, as shown above. Background crawling is currently paused and the recurring Codex automation has been deleted. Asking a question does not refresh pharmacy prices; observations can become unavailable when they age beyond the freshness window.
 
 ## Pricing questions the data can answer

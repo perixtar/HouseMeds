@@ -24,6 +24,7 @@
     "e2e:live": "tsx scripts/e2e-live.mjs",
     "e2e:controlled": "node scripts/e2e-controlled.mjs",
     "ask": "tsx src/agent-cli.ts",
+    "research:medicine": "tsx src/agent-research-cli.ts",
     "mcp:pricing": "tsx src/agent-mcp.ts",
     "e2e:agent": "tsx scripts/e2e-agent.ts",
     "e2e:agent:live": "tsx scripts/e2e-agent-live.mjs",
