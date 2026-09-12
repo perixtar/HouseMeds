@@ -19,7 +19,7 @@ The frontend uses ordinary `fetch`, bearer authentication, and no cookies. All f
 
 ## Verify the user flow
 
-1. Open **Add a prescription with AI**.
+1. Add a name or nickname on **Who’s in your house?**, then open **Add a prescription with AI**.
 2. Attach a photo from `data/` and send **Add this prescription**.
 3. Reply with a household member's nickname or tap their choice.
 4. Open **Review prescription**; check the populated form against the photo.
@@ -41,7 +41,7 @@ npm run preview
 
 Deploy `dist/` to your frontend host. Vite includes `VITE_` values in the build: the token is absent from the interface but can be inspected in browser assets and requests. Use this shared token for the trusted team development environment; public multi-user deployments need user authentication.
 
-The supplied API token currently authorizes one shared development household. Members are read from the database; member administration is outside this prescription-intake flow. The main app uses the household prototype’s deals screens with saved AWS prescriptions. `deals.js` supplies clearly labeled example prices; no live quote, order, or prescription transfer is made. The AWS chat, image review, and prescription persistence remain connected to the shared backend.
+Each browser profile stores its own random household key in localStorage. Normal tabs on the same frontend origin share that household; Chrome Incognito starts with an empty household and keeps it only for that private browsing session. Reloads preserve members, while clearing site data loses the browser key. There is no account recovery or cross-device household sharing yet. The former shared development household remains in the database, but new browser households start empty. Add members by name; duplicates reuse the existing member. The main app uses the household prototype’s deals screens with saved AWS prescriptions. `deals.js` supplies clearly labeled example prices; no live quote, order, or prescription transfer is made. The AWS chat, image review, and prescription persistence remain connected to the shared backend.
 
 See [the API contract, examples, architecture, and deployment instructions](../backend/PRESCRIPTION_API.md).
 

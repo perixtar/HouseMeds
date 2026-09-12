@@ -68,6 +68,15 @@ def extract(request, bedrock=None):
 
 async def handle(request: Request, tools, extractor=extract):
     tenant = str(request.household_id)
+    if request.action in ("state", "create_member"):
+        await tools.call("ensure_household", household_id=tenant)
+    if request.action == "create_member":
+        if not request.nickname:
+            raise ValueError("missing_member_nickname")
+        member = await tools.call("create_member", household_id=tenant, request_id=str(request.request_id), nickname=request.nickname)
+        members = (await tools.call("list_members", household_id=tenant))["members"]
+        return {"status": "member_created", "member": member, "members": members,
+                "message": f"{member['nickname']} is already in your household." if member["replayed"] else f"Added {member['nickname']} to your household."}
     members = (await tools.call("list_members", household_id=tenant))["members"]
     if request.action == "state":
         prescriptions = (await tools.call("list_prescriptions", household_id=tenant))["prescriptions"]

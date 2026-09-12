@@ -14,8 +14,9 @@ class Tools:
 
     async def call(self, name, **args):
         self.calls.append((name, args))
-        return {"list_members": {"members": [{"id": M, "nickname": "Grandma"}]},
+        return {"ensure_household": {"household_id":H}, "list_members": {"members": [{"id": M, "nickname": "Grandma"}]},
             "list_prescriptions": {"prescriptions": []},
+            "create_member": {"id": M, "nickname": "Mom", "replayed": False},
             "normalize_medication": {"name": "sertraline 100 MG Oral Tablet", "status": "verified"},
             "save_draft": {"id": D, "fields": FIELDS, "normalization": {}},
             "save_drafts": {"drafts":[{"id": D, "fields": FIELDS, "normalization": {}}]},
@@ -103,3 +104,14 @@ def test_manual_fields_prepare_a_review_draft_without_using_the_model():
     assert result["status"] == "needs_member"
     assert [name for name, _ in tools.calls] == ["list_members", "normalize_medication", "save_drafts"]
     assert tools.calls[-1][1]["prescriptions"][0]["directions"] == ""
+
+
+def test_member_creation_uses_mcp_without_a_model_or_prescription_write():
+    def unused(_):
+        raise AssertionError("Member creation must not invoke the model")
+    tools=Tools()
+    request_id=uuid4()
+    result=asyncio.run(handle(Request(household_id=H,request_id=request_id,action="create_member",nickname=" Mom "),tools,extractor=unused))
+    assert result["status"]=="member_created"
+    assert [name for name,_ in tools.calls]==["ensure_household","create_member","list_members"]
+    assert tools.calls[1][1]=={"household_id":H,"request_id":str(request_id),"nickname":"Mom"}

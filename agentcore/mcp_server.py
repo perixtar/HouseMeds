@@ -9,9 +9,21 @@ repo = Repository()
 
 
 @mcp.tool()
+def ensure_household(household_id: UUID) -> dict:
+    """Initialize an empty household using the identity assigned by the trusted API."""
+    return repo.ensure_household(household_id)
+
+
+@mcp.tool()
 def list_members(household_id: UUID) -> dict:
     """List member IDs and nicknames in the authenticated backend's household."""
     return {"members": repo.list_members(household_id)}
+
+
+@mcp.tool()
+def create_member(household_id: UUID, request_id: UUID, nickname: str) -> dict:
+    """Add an explicitly named household member; retries and duplicate nicknames reuse the member."""
+    return repo.create_member(household_id, request_id, nickname)
 
 
 @mcp.tool()

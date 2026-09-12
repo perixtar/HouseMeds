@@ -8,6 +8,7 @@ const fields = {medication: 'medicineName', strength: 'strength', form: 'medicin
 const draftKey = 'housemed_mobile_draft_id';
 let lastRequest, manualRequestId, preview, progressTimer;
 let deals = [], selectedDeal;
+let memberRequest;
 function el(tag, text, className) {
   const node = document.createElement(tag); if (text) node.textContent = text; if (className) node.className = className; return node;
 }
@@ -89,7 +90,7 @@ function setBusy(value, title = 'Loading your medicines…', detail = 'Please wa
     $('#progressTitle').textContent = title; $('#progressDetail').textContent = detail;
     progressTimer = setTimeout(() => { $('#progressDetail').textContent = 'Still working. You don’t need to send it again.'; }, 15000);
   }
-  $$('#chatForm button, #chatForm input, #medicineForm input, #medicineForm textarea, #medicineForm select, #saveMedicine, #photoInput, #removePhoto, #chatActions button, #starterChoices button').forEach(n => n.disabled = value);
+  $$('#memberForm button, #memberForm input, #chatForm button, #chatForm input, #medicineForm input, #medicineForm textarea, #medicineForm select, #saveMedicine, #photoInput, #removePhoto, #chatActions button, #starterChoices button').forEach(n => n.disabled = value);
   $('#membersNext').disabled = value || !state.members.length;
 }
 async function request(body) {
@@ -170,6 +171,21 @@ async function sendMessage(text) {
     $('#chatStatus').textContent = `${e.message} Try sending again.`;
   } finally { setBusy(false); }
 }
+$('#memberForm').onsubmit = async event => {
+  event.preventDefault(); if (state.busy) return;
+  const nickname = $('#memberName').value.trim();
+  if (!nickname) { $('#memberStatus').textContent = 'Enter a name or nickname.'; $('#memberName').focus(); return; }
+  if (memberRequest?.nickname !== nickname) memberRequest = {nickname, id: crypto.randomUUID()};
+  setBusy(true, 'Adding household member…'); $('#memberForm').setAttribute('aria-busy', 'true');
+  $('#addMember').textContent = '…'; $('#memberStatus').textContent = `Adding ${nickname}…`;
+  try {
+    const result = await request({action: 'create_member', request_id: memberRequest.id, nickname});
+    apply(result, false); renderMemberSelect();
+    $('#memberName').value = ''; memberRequest = null; $('#memberStatus').textContent = result.message;
+    $('#houseStatus').textContent = 'Choose a household member.';
+  } catch (e) { $('#memberStatus').textContent = `${e.message} Try adding this member again.`; }
+  finally { setBusy(false); $('#memberForm').setAttribute('aria-busy', 'false'); $('#addMember').textContent = '+'; }
+};
 for (const id of ['#memberList', '#personChoices']) $(id).onclick = event => {
   const button = event.target.closest('[data-person]'); if (!button) return;
   state.selected = button.dataset.person; renderMeds(); go('meds');
@@ -239,7 +255,7 @@ const starter = el('button', 'Add medicine from a picture →', 'starter'); star
 async function start() {
   setBusy(true);
   try {
-    apply(await request(), false); $('#houseStatus').textContent = state.members.length ? 'Choose a household member.' : 'No household members are configured.';
+    apply(await request(), false); $('#houseStatus').textContent = state.members.length ? 'Choose a household member.' : 'Add your first household member.';
     const id = sessionStorage.getItem(draftKey);
     if (id) apply(await request({action: 'chat', request_id: crypto.randomUUID(), draft_id: id, message: ''}), false);
   } catch (e) { $('#houseStatus').textContent = e.message; $('#chatStatus').textContent = e.message; }

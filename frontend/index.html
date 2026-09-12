@@ -24,6 +24,11 @@
         <h1>Who’s in your house?</h1>
         <p class="lede">Keep your household’s medicines in one place. Choose a person or add a prescription with HouseMeds AI.</p>
         <p id="houseStatus" role="status">Loading your household…</p>
+        <form id="memberForm" class="add-field">
+          <input id="memberName" autocomplete="off" required maxlength="80" placeholder="e.g. Mom, Grandpa, Alex" aria-label="New member name" />
+          <button id="addMember" type="submit" class="plus" aria-label="Add household member">+</button>
+        </form>
+        <p id="memberStatus" class="hint" role="status"></p>
         <div id="memberList" class="member-list" aria-live="polite"></div>
         <button id="houseAssistant" class="ai-button full">✦ Add a prescription with AI</button>
         <div class="bottom-action">

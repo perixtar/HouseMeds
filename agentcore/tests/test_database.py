@@ -25,6 +25,7 @@ def database():
     with psycopg.connect(admin) as db:
         db.execute((ROOT / "backend/supabase/migrations/20260912210000_prescription_intake.sql").read_text())
         db.execute((ROOT / "backend/supabase/migrations/20260912214500_prescription_photo_batches.sql").read_text())
+        db.execute((ROOT / "backend/supabase/migrations/20260912223000_member_creation.sql").read_text())
         h1, h2, m1, m2 = [str(uuid4()) for _ in range(4)]
         db.execute("insert into housemed.households(id,name) values(%s,'Household one'),(%s,'Household two')", (h1,h2))
         db.execute("insert into housemed.members(id,household_id,nickname) values(%s,%s,'Grandma'),(%s,%s,'Someone else')", (m1,h1,m2,h2))
@@ -74,3 +75,39 @@ def test_photo_retry_keeps_original_batch_even_if_model_returns_different_fields
     first=repo.save_drafts(h1,request_id,[Fields(medication="A").model_dump(),Fields(medication="B").model_dump()],{})
     retry=repo.save_drafts(h1,request_id,[Fields(medication="C").model_dump()],{})
     assert first==retry
+
+
+def test_member_creation_is_idempotent_and_case_insensitive(database):
+    repo,h1,h2,_,_,_=database
+    request_id=uuid4()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        rows=list(pool.map(lambda _: repo.create_member(h1,request_id,"  Mom  "),range(2)))
+    assert rows[0]["id"]==rows[1]["id"]
+    assert sorted(row["replayed"] for row in rows)==[False,True]
+    assert repo.create_member(h1,uuid4(),"mom")["id"]==rows[0]["id"]
+    assert repo.create_member(h2,request_id,"Mom")["id"]!=rows[0]["id"]
+    with pytest.raises(ValueError,match="already_used"):
+        repo.create_member(h1,request_id,"Dad")
+    for nickname in ["   ","x"*81]:
+        with pytest.raises(ValueError,match="invalid_member"):
+            repo.create_member(h1,uuid4(),nickname)
+
+
+def test_member_insert_cannot_escape_household_scope(database):
+    repo,h1,h2,_,_,_=database
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        with repo.transaction(h1) as (db,_):
+            db.execute("insert into housemed.members(household_id,nickname) values(%s,'Cross tenant')",(h2,))
+
+
+def test_new_browser_household_starts_empty_and_survives_repeat_initialization(database):
+    repo,_,_,_,_,_=database
+    household=str(uuid4())
+    repo.ensure_household(household)
+    assert repo.list_members(household)==[]
+    member=repo.create_member(household,uuid4(),"Demo member")
+    repo.ensure_household(household)
+    assert repo.list_members(household)==[{"id":member["id"],"nickname":"Demo member"}]
+    with pytest.raises(psycopg.errors.InsufficientPrivilege):
+        with repo.transaction(household) as (db,_):
+            db.execute("insert into housemed.households(id,name) values(%s,'Other household')",(uuid4(),))

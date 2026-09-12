@@ -34,7 +34,7 @@ class Photo(BaseModel):
 
 class Request(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    action: Literal["chat", "state", "confirm", "prepare"] = "chat"
+    action: Literal["chat", "state", "confirm", "prepare", "create_member"] = "chat"
     household_id: UUID
     request_id: UUID
     message: str = Field(default="", max_length=4000)
@@ -42,3 +42,9 @@ class Request(BaseModel):
     draft_id: UUID | None = None
     member_id: UUID | None = None
     fields: Fields | None = None
+    nickname: str | None = Field(default=None, min_length=1, max_length=80)
+
+    @field_validator("nickname", mode="before")
+    @classmethod
+    def clean_nickname(cls, value):
+        return value.strip() if isinstance(value, str) else value

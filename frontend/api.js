@@ -2,8 +2,20 @@ import {sharedApiUrl} from './shared-api.js';
 
 const apiUrl = import.meta.env.VITE_API_BASE_URL || sharedApiUrl || 'http://127.0.0.1:63815';
 const accessToken = import.meta.env.VITE_API_TOKEN || '';
-const sessionId = sessionStorage.getItem('housemed_api_session') || crypto.randomUUID();
-sessionStorage.setItem('housemed_api_session', sessionId);
+const householdStorageKey = 'housemed_household_key';
+let householdKey = localStorage.getItem(householdStorageKey);
+if (!householdKey) {
+  householdKey = Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2,'0')).join('');
+  localStorage.setItem(householdStorageKey, householdKey);
+  // A draft from the previous shared development household is not in this browser's household.
+  sessionStorage.removeItem('housemed_mobile_draft_id');
+}
+// AgentCore keeps existing sessions on their original code version. Start a new
+// session for the browser-household protocol, retaining drafts in the database.
+const sessionStorageKey = 'housemed_api_session_v2';
+const sessionId = sessionStorage.getItem(sessionStorageKey) || crypto.randomUUID();
+sessionStorage.setItem(sessionStorageKey, sessionId);
+sessionStorage.removeItem('housemed_api_session');
 // Remove credentials retained by older versions of the connection settings UI.
 sessionStorage.removeItem('housemed_api_url');
 sessionStorage.removeItem('housemed_api_token');
@@ -13,7 +25,7 @@ export async function callPrescriptionApi(body) {
   if (!accessToken) throw Error('HouseMeds is not configured. Ask your teammate to check the frontend environment.');
   const response = await fetch(apiUrl.replace(/\/$/, '') + '/v1/prescription-chat' + (body ? '' : '/state'), {
     method: body ? 'POST' : 'GET', credentials: 'omit',
-    headers: {Authorization: `Bearer ${accessToken}`, 'X-Housemed-Session-Id': sessionId, ...(body ? {'Content-Type': 'application/json'} : {})},
+    headers: {Authorization: `Bearer ${accessToken}`, 'X-Housemed-Session-Id': sessionId, 'X-Housemed-Household-Key': householdKey, ...(body ? {'Content-Type': 'application/json'} : {})},
     ...(body ? {body: JSON.stringify(body)} : {}), signal: AbortSignal.timeout(150_000),
   });
   const result = await response.json();

@@ -125,3 +125,7 @@ label select, label textarea { display: block; width: 100%; padding: 12px; margi
 .deal .deal-icon { flex-shrink: 0; }
 .deal .price { flex-shrink: 0; font-size: 14px; text-align: right; }
 .toast:not(.show) { visibility: hidden; }
+#memberForm { margin: 20px 0 6px; }
+#memberForm input { min-width: 0; }
+#addMember { flex-shrink: 0; }
+#memberStatus { min-height: 18px; margin: 0 0 12px; }

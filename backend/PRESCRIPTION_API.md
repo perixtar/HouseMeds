@@ -38,6 +38,12 @@ Other frontends may use the same endpoints directly. There is no origin allowlis
 const API_URL = 'https://YOUR_SHARED_API.lambda-url.us-east-1.on.aws';
 const API_TOKEN = 'YOUR_API_ACCESS_TOKEN';
 const sessionId = crypto.randomUUID();
+// Persist privately per browser profile; never use a shared key in frontend config.
+let householdKey = localStorage.getItem('housemed_household_key');
+if (!householdKey) {
+  householdKey = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
+  localStorage.setItem('housemed_household_key', householdKey);
+}
 
 async function request(body) {
   const response = await fetch(`${API_URL}/v1/prescription-chat${body ? '' : '/state'}`, {
@@ -46,6 +52,7 @@ async function request(body) {
     headers: {
       Authorization: `Bearer ${API_TOKEN}`,
       'X-Housemed-Session-Id': sessionId,
+      'X-Housemed-Household-Key': householdKey,
       ...(body ? {'Content-Type': 'application/json'} : {}),
     },
     ...(body ? {body: JSON.stringify(body)} : {}),
@@ -83,8 +90,10 @@ const saved = await request({
 | GET | `/healthz` | Public API-process health; does not invoke AWS |
 | GET | `/openapi.json` | Authenticated OpenAPI 3.1 specification |
 | GET | `/v1/prescription-chat/state` | Read members and saved prescriptions through AgentCore → MCP → Supabase |
-| POST | `/v1/prescription-chat` | Extract, select a member, prepare a manual draft, or save |
+| POST | `/v1/prescription-chat` | Add a member, extract, select a member, prepare a manual draft, or save |
 | OPTIONS | any API path | Unauthenticated browser CORS preflight |
+
+Every state read and POST requires `X-Housemed-Household-Key`, a persistent 32-byte random capability encoded as 64 lowercase hex characters. The backend derives the household UUID using `HOUSEMED_HOUSEHOLD_SECRET`; the client cannot submit a household ID. Normal browser tabs share localStorage; Incognito has a separate key and empty household. Missing keys fail closed, without falling back to the previous shared household.
 
 Every POST requires a UUID `request_id`. Reuse it when retrying the **same** upload or manual preparation; use a new ID for a new intake. `X-Housemed-Session-Id` is an optional UUID and is returned in the response headers. Drafts live in Supabase and remain usable with a new session after a reload/runtime restart. Keep `draft_id` in your application's state for review and confirmation.
 
@@ -92,6 +101,7 @@ Actions:
 
 - `chat` with `message` and optional `image`: transcribe prescription details, normalize the first medicine, and save review drafts. Returns `needs_member` plus `members`, `draft`, and `drafts`.
 - `chat` with `draft_id` and a member's exact nickname: select a database member for the review form. Returns `needs_review` and `selected_member_id`. A blank message restores the draft and its remaining batch.
+- `create_member` with `nickname` (trimmed, 1–80 characters): persist a member through AgentCore and MCP. Returns `member_created`, the member, and refreshed members. Reuse `request_id` when retrying; a case-insensitive duplicate nickname reuses the member.
 - `prepare` with `fields`: create a manual-entry draft without model extraction. Returns a draft; it is not a saved prescription yet.
 - `confirm` with `draft_id`, `member_id`, and reviewed `fields`: persist once, then return `saved`, the saved `prescription`, and the refreshed `prescriptions` list. Changing an already-saved draft's member/fields is rejected.
 
@@ -111,11 +121,11 @@ The frontend does not need this, but backend developers can run the same API loc
 cd backend
 npm ci
 cp .env.prescriptions.example .env.prescriptions
-# Set the runtime ARN, household UUID, AWS region/profile, and API token.
+# Set the runtime ARN, stable server-only HOUSEMED_HOUSEHOLD_SECRET, AWS region/profile, and API token.
 npm run prescriptions:api
 ```
 
-Default address: `http://127.0.0.1:63815`. The AWS identity needs only permission to invoke the existing AgentCore runtime and its DEFAULT endpoint. No Supabase login is required on the HTTP API server. Use the deployed ARN in `config/prescription-api.json`; obtain the household UUID through the owner's backend configuration. Set `PRESCRIPTION_API_HOST=0.0.0.0` only when intentionally serving the API on your network. Any frontend origin remains allowed.
+Default address: `http://127.0.0.1:63815`. The AWS identity needs only permission to invoke the existing AgentCore runtime and its DEFAULT endpoint. No Supabase login is required on the HTTP API server. Use the deployed ARN in `config/prescription-api.json`. Set `PRESCRIPTION_API_HOST=0.0.0.0` only when intentionally serving the API on your network. Any frontend origin remains allowed.
 
 ## Deploy or update the shared AWS API
 
@@ -133,6 +143,6 @@ The script uses the existing `.env.agentcore`/`.env.prescriptions`, reuses the a
 
 The function URL uses AWS `NONE` URL authentication because the application validates its own bearer token. Public URL invocation permissions are restricted to the URL invocation path. CORS is set by Fastify, not duplicated by the optional Lambda CORS layer. The endpoint is publicly reachable, but prescription reads and writes require the token.
 
-The current token authorizes the **configured shared development household**. It is not per-user authentication. Share it only with authorized teammates; do not embed it in a publicly distributed frontend. The sample frontend reads `VITE_API_TOKEN` from its ignored `.env` file. It does not display the token, but Vite includes it in browser builds and it is observable in requests. Use this configuration for trusted team development; a public multi-user frontend needs user authentication. AWS credentials and Supabase service credentials must never enter frontend config.
+The API token authorizes this development API; a separate unguessable browser key scopes each household. `HOUSEMED_HOUSEHOLD_SECRET` stays on the server and must remain stable across deployments. The deploy script generates it once and retains it in the ignored backend environment. Browser keys must stay private: possession grants access to that household when combined with the API token. Clearing browser storage loses access to that anonymous household; existing data remains in Supabase. This is browser isolation, not per-user account authentication. Share it only with authorized teammates; do not embed it in a publicly distributed frontend. The sample frontend reads `VITE_API_TOKEN` from its ignored `.env` file. It does not display the token, but Vite includes it in browser builds and it is observable in requests. Use this configuration for trusted team development; a public multi-user frontend needs user authentication. AWS credentials and Supabase service credentials must never enter frontend config.
 
 For runtime/MCP/database provisioning see [`../agentcore/README.md`](../agentcore/README.md). The legacy pricing API (`npm run api`) and pricing web server (`npm run web`) are separate services; the prescription API does not need either running.

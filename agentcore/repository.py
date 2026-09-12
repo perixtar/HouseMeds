@@ -41,6 +41,29 @@ class Repository:
         with self.transaction(household_id) as (db, household):
             return db.execute("select id::text, nickname from housemed.members where household_id=%s order by nickname", (household,)).fetchall()
 
+    def ensure_household(self, household_id):
+        with self.transaction(household_id) as (db, household):
+            db.execute("insert into housemed.households(id,name) values(%s,'My household') on conflict(id) do nothing", (household,))
+            return {"household_id": household}
+
+    def create_member(self, household_id, request_id, nickname):
+        nickname = nickname.strip()
+        if not 1 <= len(nickname) <= 80:
+            raise ValueError("invalid_member_nickname")
+        member_id = uuid5(UUID(str(household_id)), "member:" + str(UUID(str(request_id))))
+        with self.transaction(household_id) as (db, household):
+            db.execute("select pg_advisory_xact_lock(hashtextextended(%s,0))", ("members:" + household,))
+            previous = db.execute("select id::text,nickname from housemed.members where household_id=%s and id=%s", (household, member_id)).fetchone()
+            if previous:
+                if previous["nickname"] != nickname:
+                    raise ValueError("member_request_already_used")
+                return dict(previous, replayed=True)
+            existing = db.execute("select id::text,nickname from housemed.members where household_id=%s and lower(nickname)=lower(%s)", (household, nickname)).fetchone()
+            if existing:
+                return dict(existing, replayed=True)
+            row = db.execute("insert into housemed.members(id,household_id,nickname) values(%s,%s,%s) returning id::text,nickname", (member_id, household, nickname)).fetchone()
+            return dict(row, replayed=False)
+
     def list_prescriptions(self, household_id):
         with self.transaction(household_id) as (db, household):
             return db.execute("""select p.id::text, p.member_id::text, m.nickname, p.fields,

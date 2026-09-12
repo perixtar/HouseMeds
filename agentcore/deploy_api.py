@@ -31,9 +31,11 @@ def deploy(profile, region, configure_frontend):
     env = {**dotenv_values(ROOT / "backend/.env.agentcore"), **dotenv_values(ROOT / "backend/.env.prescriptions")}
     arn, household = env["HOUSEMED_AGENT_RUNTIME_ARN"], env["HOUSEMED_HOUSEHOLD_ID"]
     token = env.get("HOUSEMED_PRESCRIPTION_API_TOKEN") or secrets.token_urlsafe(48)
+    household_secret = env.get("HOUSEMED_HOUSEHOLD_SECRET") or secrets.token_urlsafe(48)
     if len(token) < 32:
         raise ValueError("API token must have at least 32 characters")
     local_env = {"AWS_REGION": region, "AWS_PROFILE": profile, "HOUSEMED_AGENT_RUNTIME_ARN": arn,
+                 "HOUSEMED_HOUSEHOLD_SECRET": household_secret,
                  "HOUSEMED_HOUSEHOLD_ID": household, "HOUSEMED_HOUSEHOLD_NAME": env.get("HOUSEMED_HOUSEHOLD_NAME", "Your household"),
                  "HOUSEMED_PRESCRIPTION_API_TOKEN": token}
     # Persist before provisioning so interrupted/retried deployments reuse the same token.
