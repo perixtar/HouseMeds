@@ -37,16 +37,11 @@ const nonSecretEnvSchema = z.object({
   AWS_REGION: z.string().min(1).default('us-west-1'),
   COGNITO_USER_POOL_ID: z.string().min(1).optional(),
   COGNITO_APP_CLIENT_ID: z.string().min(1).optional(),
-  PRICE_COMPARISON_QUEUE_URL: z.string().url().optional(),
-  IDEMPOTENCY_TABLE_NAME: z.string().min(1).optional(),
   // This stage's API Gateway endpoint, for the Swagger UI "servers" entry.
   API_BASE_URL: z.string().url().optional(),
-  // Local-dev fallbacks for secrets normally read from SSM.
-  MONGODB_URI: z.string().optional(),
-  PRICING_API_KEY: z.string().optional(),
-  PRICING_API_BASE_URL: z.string().url().optional(),
-  MONGODB_URI_SSM_PARAM: z.string().default('/medhouse/mongodb-uri'),
-  PRICING_API_KEY_SSM_PARAM: z.string().default('/medhouse/pricing-api-key'),
+  // Local-dev fallback for the secret normally read from SSM.
+  SUPABASE_DB_URL: z.string().optional(),
+  SUPABASE_DB_URL_SSM_PARAM: z.string().default('/medhouse/supabase-db-url'),
 });
 
 export type NonSecretEnv = z.infer<typeof nonSecretEnvSchema>;
@@ -84,55 +79,25 @@ export function requireEnv<K extends keyof NonSecretEnv>(
 }
 
 // Fetched once per container lifetime, never per request.
-let cachedMongoUri: string | undefined;
-let cachedPricingApiKey: string | undefined;
+let cachedSupabaseDbUrl: string | undefined;
 
-export async function getMongoUri(): Promise<string> {
-  if (cachedMongoUri) return cachedMongoUri;
+export async function getSupabaseDbUrl(): Promise<string> {
+  if (cachedSupabaseDbUrl) return cachedSupabaseDbUrl;
 
   const env = getEnv();
-  if (isLocalDev() && env.MONGODB_URI) {
-    cachedMongoUri = env.MONGODB_URI;
-    return cachedMongoUri;
+  if (isLocalDev() && env.SUPABASE_DB_URL) {
+    cachedSupabaseDbUrl = env.SUPABASE_DB_URL;
+    return cachedSupabaseDbUrl;
   }
 
   const value = await withTimeout(
-    getParameter(env.MONGODB_URI_SSM_PARAM, { decrypt: true }),
-    'ssm.getParameter(mongodb-uri)',
+    getParameter(env.SUPABASE_DB_URL_SSM_PARAM, { decrypt: true }),
+    'ssm.getParameter(supabase-db-url)',
     5000,
   );
   if (!value) {
-    throw new Error(`SSM parameter ${env.MONGODB_URI_SSM_PARAM} returned no value`);
+    throw new Error(`SSM parameter ${env.SUPABASE_DB_URL_SSM_PARAM} returned no value`);
   }
-  cachedMongoUri = value;
-  return cachedMongoUri;
-}
-
-export async function getPricingApiKey(): Promise<string> {
-  if (cachedPricingApiKey) return cachedPricingApiKey;
-
-  const env = getEnv();
-  if (isLocalDev() && env.PRICING_API_KEY) {
-    cachedPricingApiKey = env.PRICING_API_KEY;
-    return cachedPricingApiKey;
-  }
-
-  const value = await withTimeout(
-    getParameter(env.PRICING_API_KEY_SSM_PARAM, { decrypt: true }),
-    'ssm.getParameter(pricing-api-key)',
-    5000,
-  );
-  if (!value) {
-    throw new Error(`SSM parameter ${env.PRICING_API_KEY_SSM_PARAM} returned no value`);
-  }
-  cachedPricingApiKey = value;
-  return cachedPricingApiKey;
-}
-
-export function getPricingApiBaseUrl(): string {
-  const env = getEnv();
-  if (!env.PRICING_API_BASE_URL) {
-    throw new Error('PRICING_API_BASE_URL is not configured');
-  }
-  return env.PRICING_API_BASE_URL;
+  cachedSupabaseDbUrl = value;
+  return cachedSupabaseDbUrl;
 }

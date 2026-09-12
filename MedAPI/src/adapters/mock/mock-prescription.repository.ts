@@ -1,10 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { PrescriptionRepository } from '../../ports/prescription-repository.port';
-import type {
-  PriceComparisonRecommendation,
-  PrescriptionHousehold,
-  PrescriptionSummary,
-} from '../../domain/types';
+import type { PrescriptionHousehold, PrescriptionSummary } from '../../domain/types';
 import mockData from '../../../mock-json/mock-data.json';
 
 const seed = mockData.repositories.prescription;
@@ -15,7 +11,7 @@ type SeedRow = Omit<PrescriptionHousehold, 'id' | 'submittedAt' | 'lastUpdatedAt
   lastUpdatedAt?: string;
 };
 
-// In-memory store, seeded once from the fixture, instead of MongoDB Atlas.
+// In-memory store, seeded once from the fixture, instead of Supabase.
 export class MockPrescriptionRepository implements PrescriptionRepository {
   private readonly byId = new Map<string, PrescriptionHousehold>();
 
@@ -71,28 +67,5 @@ export class MockPrescriptionRepository implements PrescriptionRepository {
     if (!found || found.householdId !== householdId) return false;
     this.byId.set(id, { ...found, deleted: true, lastUpdatedAt: new Date() });
     return true;
-  }
-
-  async savePriceComparisons(
-    id: string,
-    offers: PriceComparisonRecommendation[],
-  ): Promise<void> {
-    const found = this.byId.get(id);
-    if (!found) return;
-    this.byId.set(id, {
-      ...found,
-      priceComparisonStatus: 'ready',
-      priceComparisons: offers,
-    });
-  }
-
-  async markPriceComparisonUnavailable(id: string): Promise<void> {
-    const found = this.byId.get(id);
-    if (!found) return;
-    this.byId.set(id, {
-      ...found,
-      priceComparisonStatus: 'unavailable',
-      priceComparisons: [],
-    });
   }
 }

@@ -1,6 +1,6 @@
 import type { Medicine, Member, PrescriptionHousehold } from './types';
 
-// Pure domain functions for PrescriptionHousehold — no Mongo, no pricing calls.
+// Pure domain functions for PrescriptionHousehold — no DB, no fetchPrice calls.
 
 export function computeMedicineTotal(quantity: number, unitPrice: number): number {
   return roundMoney(quantity * unitPrice);
@@ -77,7 +77,15 @@ function reconcileMedicines(existing: Medicine[], incoming: Medicine[]): Medicin
       ...existingMed,
       name: incomingMed.name,
       genericName: incomingMed.genericName,
+      form: incomingMed.form,
+      strength: incomingMed.strength,
+      strengthUnit: incomingMed.strengthUnit,
+      dosageUnit: incomingMed.dosageUnit,
       quantity: incomingMed.quantity,
+      frequency: incomingMed.frequency,
+      prescriberName: incomingMed.prescriberName,
+      refills: incomingMed.refills,
+      medId: incomingMed.medId,
     });
   }
 
