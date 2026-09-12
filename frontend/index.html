@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f8fb" />
+    <title>HouseMeds — prototype</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="phone-shell">
+      <header class="topbar">
+        <button id="backButton" class="icon-button back" aria-label="Go back">←</button>
+        <a class="brand" href="#house" aria-label="HouseMeds home"><span class="brand-mark">+</span>HouseMeds</a>
+        <button class="icon-button" id="helpButton" aria-label="Open medication assistant">✦</button>
+      </header>
+
+      <section id="house" class="screen active" data-screen="house">
+        <div class="eyebrow">STEP 1 OF 3</div>
+        <h1>Who’s in your house?</h1>
+        <p class="lede">Add anyone whose medicines you want to keep in one place.</p>
+        <form id="memberForm" class="add-field">
+          <input id="memberName" autocomplete="off" placeholder="e.g. Grandma" aria-label="Member name" />
+          <button type="submit" class="plus" aria-label="Add household member">+</button>
+        </form>
+        <div id="memberList" class="member-list" aria-live="polite"></div>
+        <div class="bottom-action">
+          <button id="membersNext" class="primary full">Continue <span>→</span></button>
+        </div>
+      </section>
+
+      <section id="choose" class="screen" data-screen="choose">
+        <div class="eyebrow">STEP 2 OF 3</div>
+        <h1>Whose medicines are we adding?</h1>
+        <p class="lede">You can return anytime to add or update a list.</p>
+        <div id="personChoices" class="person-choices"></div>
+        <button id="chooseNext" class="text-button">I’m finished adding medicines <span>→</span></button>
+      </section>
+
+      <section id="meds" class="screen" data-screen="meds">
+        <div class="eyebrow" id="medsEyebrow">MEDICINES</div>
+        <h1><span id="medsTitle">Grandma’s</span> medicine list</h1>
+        <div id="medicineList" class="medicine-list"></div>
+        <button id="showMedicineForm" class="outline full">＋ Add medicine manually</button>
+        <button id="openAssistant" class="ai-button full"><span>✦</span> Create with HouseMeds AI</button>
+        <button id="getDeals" class="primary full deal-cta">Get your deals <span>→</span></button>
+      </section>
+
+      <section id="deals" class="screen" data-screen="deals">
+        <div class="eyebrow">YOUR SAVINGS PLAN</div>
+        <h1>Best deals for your house</h1>
+        <p class="lede">We found lower prices for each prescription. Tap a medicine to compare options.</p>
+        <div class="savings-card"><span>Estimated yearly savings</span><strong>$482</strong><small>compared with your current pharmacy</small></div>
+        <div id="dealList" class="deal-list"></div>
+      </section>
+
+      <section id="detail" class="screen" data-screen="detail">
+        <button class="inline-back" data-go="deals">← All deals</button>
+        <div class="eyebrow">BEST PRICE FOR <span id="detailPerson">GRANDMA</span></div>
+        <h1 id="detailName">Sertraline 100mg</h1>
+        <p class="drug-subtitle">Also known as Zoloft</p>
+        <div class="recommended">
+          <div class="recommend-label">OUR RECOMMENDATION <span>Best value</span></div>
+          <h2>Cost Plus Drugs</h2>
+          <div class="price-row"><strong>$12.40</strong><span>for 90 days</span></div>
+          <p>About <b>14¢ per pill</b> · Delivered to your door</p>
+          <button class="primary full" id="selectDeal">Select this deal</button>
+        </div>
+        <h3>Other options</h3>
+        <div class="option"><span>Local Pharmacy</span><b>$38.99</b></div>
+        <div class="option"><span>GoodRx at CVS</span><b>$21.20</b></div>
+        <div class="how-it-works"><span>✦</span><p><b>Need a 90-day prescription?</b><br />We’ll prepare clear instructions to send your prescriber.</p></div>
+      </section>
+    </main>
+
+    <div id="medicineModal" class="modal" aria-hidden="true">
+      <div class="modal-sheet">
+        <div class="handle"></div>
+        <button class="modal-close" aria-label="Close">×</button>
+        <div class="eyebrow">ADD MEDICINE</div>
+        <h2>Enter prescription details</h2>
+        <form id="medicineForm">
+          <label>Medicine name + strength<input id="medicineName" required placeholder="e.g. Zoloft 100mg" /></label>
+          <label>Dosage<input id="dosage" value="1 tablet, once daily" /></label>
+          <details><summary>Optional prescription details</summary><label>Quantity<input id="quantity" value="30 days" /></label><label>Refills<input id="refills" value="1" /></label><label>Current pharmacy<input id="pharmacy" placeholder="e.g. Walgreens" /></label></details>
+          <button class="primary full" type="submit">Add medicine</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="assistantModal" class="modal assistant-modal" aria-hidden="true">
+      <div class="modal-sheet assistant-sheet">
+        <div class="handle"></div>
+        <div class="assistant-head"><div class="assistant-avatar">✦</div><div><b>HouseMeds AI</b><small>Here to help with your medicines</small></div><button class="modal-close" aria-label="Close">×</button></div>
+        <div id="chatMessages" class="chat-messages"></div>
+        <div id="starterChoices" class="starter-choices"></div>
+        <form id="chatForm" class="chat-input"><button type="button" id="attach" aria-label="Attach prescription image">＋</button><input id="chatText" placeholder="Ask anything about medicines" /><button type="submit" aria-label="Send message">↑</button></form>
+      </div>
+    </div>
+    <div id="toast" class="toast" role="status"></div>
+    <script src="app.js"></script>
+    <script src="back.js"></script>
+  </body>
+</html>
