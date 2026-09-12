@@ -3,7 +3,7 @@ import {makePool} from './db.js';import {Repository} from './repository.js';impo
 const pool=makePool(),repo=new Repository(pool);const outcomes:unknown[]=[];
 try{
  const config=await readFile('data/pilot/config.json','utf8').then(JSON.parse).catch(e=>{if(e.code==='ENOENT')return null;throw e;});
- for(const source of ['healthwarehouse','costplus'] as const){
+ for(const source of ['healthwarehouse','costplus','costco'] as const){
   try{
   const s=await repo.source(source),probe=await pool.connect();
   let free=false;try{free=(await probe.query('select pg_try_advisory_lock($1::bigint) as free',[s.id])).rows[0].free;if(free)await probe.query('select pg_advisory_unlock($1::bigint)',[s.id]);}finally{probe.release();}

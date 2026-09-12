@@ -8,7 +8,7 @@ import {pathToFileURL} from 'node:url';
 export const agentToolNames=['search_catalog','get_listing_prices','get_medication_offers','get_source_status'] as const;
 export interface AgentToolRecord {call_id:string;tool:string;arguments:Record<string,unknown>;started_at:string;elapsed_ms:number;status:'ok'|'error';data?:any;error?:string;}
 export interface AgentMcpConfig {apiOrigin:string;apiToken:string;auditPath?:string;maxCalls?:number;timeoutMs?:number;}
-const id=z.string().regex(/^[1-9][0-9]{0,17}$/),source=z.enum(['healthwarehouse','costplus']);
+const id=z.string().regex(/^[1-9][0-9]{0,17}$/),source=z.enum(['healthwarehouse','costplus','costco']);
 const page={limit:z.number().int().min(1).max(100).optional(),cursor:id.optional()};
 const offerArgs={quantity:z.string().regex(/^[0-9]+(?:\.[0-9]+)?$/).max(24).optional(),unit:z.string().regex(/^[a-z_]+$/).max(32).describe('Use the selected catalog listing content_unit, such as tablet or capsule.').optional(),source:source.optional(),location:z.string().max(64).optional(),program:z.string().max(64).optional(),include_estimates:z.boolean().optional(),...page};
 const unitAliases=new Map([['tablets','tablet'],['capsules','capsule']]);

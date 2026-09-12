@@ -5,7 +5,7 @@ import type pg from 'pg';
 import { makePool } from './db.js';
 import { quantity } from './core.js';
 const idPattern='^[1-9][0-9]{0,17}$';
-const sourceValues=['healthwarehouse','costplus'];
+const sourceValues=['healthwarehouse','costplus','costco'];
 type OfferQuery={quantity?:string;unit?:string;source?:string;location?:string;program?:string;include_estimates?:boolean;limit?:number;cursor?:string};
 const offerSchema={params:{type:'object',required:['id'],properties:{id:{type:'string',pattern:idPattern}}},querystring:{type:'object',additionalProperties:false,properties:{quantity:{type:'string',pattern:'^[0-9]+(?:\\.[0-9]+)?$',maxLength:24},unit:{type:'string',pattern:'^[a-z_]+$',maxLength:32},source:{type:'string',enum:sourceValues},location:{type:'string',maxLength:64},program:{type:'string',maxLength:64},include_estimates:{type:'boolean',default:false},limit:{type:'integer',minimum:1,maximum:100,default:50},cursor:{type:'string',pattern:idPattern}}}};
 const medicationColumns=`m.id,m.name,m.strength,m.form,m.route,m.release_type,m.canonical_name,m.rxnorm_rxcui,m.rxnorm_term_type,coalesce(m.normalization_status,'legacy') as normalization_status,m.normalization_version,m.terminology_version,

@@ -1,11 +1,12 @@
 import {readFile} from 'node:fs/promises';
 import {validateManifest,manifestHash,resultForOffers,collectionMetrics,WINDOW_MS,priceWindowTakesPriority,type CollectionResult} from './pilot.js';
 import {makePool} from './db.js';import {Repository} from './repository.js';import {EvidenceStore} from './evidence.js';
-import {SourceClient,SourceAccessError,healthwarehouse,costplus,type Snapshot} from './sources.js';
+import {SourceClient,SourceAccessError,healthwarehouse,costplus,costco,type Snapshot} from './sources.js';
 import {sources,CP_API,normalizeUrl,hash,stable,type SourceSlug,type Json,type Listing} from './core.js';
 import {MedicationNormalizer,RxNormClient} from './normalization.js';
+import {loadTopMedicationCatalog} from './top-medications.js';
 const [command,slug,...args]=process.argv.slice(2);
-if(!['discover','collect','status'].includes(command)||!['healthwarehouse','costplus'].includes(slug))throw Error('Usage: npm run crawl -- discover|collect|status healthwarehouse|costplus [--max-pages N] [--minutes N] [--manifest path]');
+if(!['discover','collect','status'].includes(command)||!['healthwarehouse','costplus','costco'].includes(slug))throw Error('Usage: npm run crawl -- discover|collect|status healthwarehouse|costplus|costco [--max-pages N] [--minutes N] [--manifest path]');
 const source=slug as SourceSlug;
 const accessChannel=source==='costplus'&&command==='collect'?'api':'website';
 function option(name:string,fallback:string){const i=args.indexOf(name);return i<0?fallback:args[i+1]??fallback;}
@@ -15,6 +16,7 @@ const scope=scheduled?'scheduled':args.includes('--access-test')?'access_test':'
 const windowStart=scheduled?option('--window-start',''):null;
 if(scheduled&&(!windowStart||!Number.isFinite(Date.parse(windowStart))))throw Error('INVALID_WINDOW_START');
 const manifest=command==='collect'?validateManifest(JSON.parse(await readFile(option('--manifest','data/manifests/acceptance.json'),'utf8')),args.includes('--access-test'),scheduled):null;
+const topMedicationCatalog=command==='collect'?await loadTopMedicationCatalog():null;
 const fileHash=manifest?manifestHash(manifest):null;
 const pilot=manifest?.listings.filter(x=>x.source===source)??[];
 const maxPages=Number(option('--max-pages','100')),minutes=Number(option('--minutes','20'));
@@ -49,7 +51,8 @@ async function persistCollection(){
 async function remember(snapshot:Snapshot,pageId:string,state:number){
  const discovered=snapshot.links.map(h=>normalizeUrl(h,snapshot.url,source)).filter((x):x is {url:string;reason:string|null}=>Boolean(x)).map(x=>({...x,from:snapshot.url}));
  await repo.discover(sourceRow.id,discovered);
- const kind=snapshot.product?'product':snapshot.next||snapshot.range||snapshot.url.endsWith('/sitemap')||(source==='costplus'&&/\/medications\/(?:categories\/.*)?$/.test(new URL(snapshot.url).pathname))||snapshot.url===sources[source].origin+'/'?'directory':/privacy|terms|shipping|policy|hipaa/.test(snapshot.url)?'policy':'content';
+ const path=new URL(snapshot.url).pathname;
+ const kind=snapshot.product||(['costco'].includes(source)&&['/drug-results-details-price','/cmpps'].includes(path))?'product':snapshot.next||snapshot.range||snapshot.url.endsWith('/sitemap')||(source==='costplus'&&/\/medications\/(?:categories\/.*)?$/.test(path))||snapshot.url===sources[source].origin+'/'?'directory':/privacy|terms|shipping|policy|hipaa/.test(snapshot.url)?'policy':'content';
  const ref=await evidence.put(source,runId!,`${pageId}:${state}`,{page_id:pageId,state,observed_at:new Date().toISOString(),url:snapshot.url,title:snapshot.title,h1:snapshot.h1,links:discovered,range:snapshot.range,has_next:snapshot.next,product:snapshot.product,buttons:snapshot.product?snapshot.buttons.filter(x=>/^Select (?:quantity|Quantity|Strength|Form)/.test(x.label)):[]});
  checkpoint={...checkpoint,phase:command,current_page_id:pageId,current_url:snapshot.url,state_index:state,fingerprint:hash(stable([snapshot.range,snapshot.links])),last_evidence:ref};
  await pool.query('update pricing.crawl_runs set checkpoint=$2,evidence_path=$3 where id=$1',[runId,JSON.stringify(checkpoint),ref]);
@@ -116,14 +119,20 @@ async function collect(){
   const page=(await pool.query("select * from pricing.crawl_pages where id=$1 and source_id=$2 and page_type<>'ignored'",[selected.page_id,sourceRow.id])).rows[0];
   if(!page||page.url!==selected.url)throw Error('MANIFEST_INVENTORY_MISMATCH');
   let snap:Snapshot|null=null;const apiQuotes:Json[]=[];
-  try{snap=source==='healthwarehouse'?await client.open(page.url,page.discovered_from??undefined):null;let parsed:{listing:Listing;offers:import('./core.js').Quote[]};
+  try{snap=source==='costplus'?null:await client.open(page.url,page.discovered_from??undefined);let parsed:{listing:Listing;offers:import('./core.js').Quote[]};
    if(source==='healthwarehouse')parsed=healthwarehouse(snap!,selected.review);
+   else if(source==='costco')parsed=costco(snap!,selected.review);
    else {const candidates=catalog.filter(x=>normalizeUrl(String(x.url),sources[source].origin,source)?.url===page.url);if(candidates.length!==1)throw Error('AMBIGUOUS_CATALOG_PRODUCT');const existing=page.listing_id?(await pool.query('select source_product_key from pricing.listings where id=$1 and source_id=$2',[page.listing_id,sourceRow.id])).rows[0]:null;
     parsed=await costplus(client,candidates[0],page.url,selected.planned_quantities??[],selected.review,existing?.source_product_key,record=>apiQuotes.push(record));}
    if(selected.source_product_key&&parsed.listing.source_product_key!==selected.source_product_key)throw Error('FROZEN_PRODUCT_IDENTITY_MISMATCH');
+   if(!topMedicationCatalog!.includes(parsed.listing)){
+    collectionResults[selected.page_id]={successful:false,successful_quantities:[],validated_price_quantities:[],attempted_at:new Date().toISOString(),reason:'MEDICATION_OUT_OF_SCOPE'};
+    await persistCollection();if(snap)await repo.pageResult(page.id,'product','success',true);
+    console.log(JSON.stringify({event:'collection_skipped',source,url:page.url,reason:'MEDICATION_OUT_OF_SCOPE'}));processed++;checkpoint={...checkpoint,manifest_index:i+1};await persistCollection();continue;
+   }
    const observed_at=new Date().toISOString();const ref=await evidence.put(source,runId!,page.url,{snapshot:snap,api_quotes:apiQuotes,parsed,observed_at});
    if(snap){const captured=snap;await repo.discover(sourceRow.id,captured.links.map(h=>normalizeUrl(h,captured.url,source)).filter((x):x is {url:string;reason:string|null}=>Boolean(x)).map(x=>({...x,from:captured.url})));}
-   const result=await repo.saveObservation(sourceRow.id,runId!,{...parsed,observed_at,evidence_path:ref,complete:source==='healthwarehouse'});
+   const result=await repo.saveObservation(sourceRow.id,runId!,{...parsed,observed_at,evidence_path:ref,complete:source!=='costplus'});
    if(result.ignored)throw Error(result.ignored);
    collectionResults[selected.page_id]=resultForOffers(selected,parsed.offers);
    if(!collectionResults[selected.page_id].successful)failures++;

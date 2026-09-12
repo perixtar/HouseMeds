@@ -154,7 +154,7 @@ curl --fail-with-body --silent --show-error --get \
   "$HOUSEMED_API_URL/v1/medications/$MEDICATION_ID/offers"
 ```
 
-`quantity` and `unit` must be supplied together. Valid optional filters are `source` (`healthwarehouse` or `costplus`), `location`, `program`, and `include_estimates`. List routes also accept `limit` and `cursor`; pass a non-null `next_cursor` into the next request to continue pagination.
+`quantity` and `unit` must be supplied together. Valid optional filters are `source` (`healthwarehouse`, `costplus`, or `costco`), `location`, `program`, and `include_estimates`. List routes also accept `limit` and `cursor`; pass a non-null `next_cursor` into the next request to continue pagination.
 
 To see all currently eligible quantity tiers for one source listing, search the source catalog and then omit quantity from the listing-offers request:
 
