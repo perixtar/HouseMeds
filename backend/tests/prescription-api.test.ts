@@ -87,6 +87,38 @@ test('the authenticated OpenAPI spec describes the frontend request contract', a
     const spec = r.json(); assert.equal(spec.openapi, '3.1.0');
     assert.equal(spec.components.securitySchemes.bearerAuth.scheme, 'bearer');
     assert.deepEqual(spec.components.schemas.PrescriptionRequest.properties.action.enum, ['chat','confirm','confirm_all','prepare','create_member']);
+    assert.ok(spec.paths['/v1/deals'].get);
+  } finally { await app.close(); }
+});
+
+test('one authenticated deals endpoint delegates aggregation to AgentCore', async () => {
+  const {app, seen} = setup();
+  try {
+    assert.equal((await app.inject({url: '/v1/deals'})).statusCode, 401);
+    assert.equal((await app.inject({url: '/v1/deals', headers: {authorization: 'Bearer '+token}})).statusCode, 400);
+    const r = await app.inject({url: '/v1/deals', headers: {authorization: 'Bearer '+token, 'x-housemed-household-key': householdKey}});
+    assert.equal(r.statusCode, 200);
+    assert.equal(seen.length, 1);
+    assert.equal(seen[0].payload.action, 'deals');
+    assert.match(seen[0].payload.household_id,/^[a-f0-9-]{36}$/);
+    assert.ok(!('household_id' in r.json()));
+  } finally { await app.close(); }
+});
+
+test('deals response preserves source labels and nullable research prices', async () => {
+  const app = buildPrescriptionApi({apiToken: token, householdSecret, invoke: async payload => {
+    assert.equal(payload.action, 'deals');
+    return {status: 'ready', pricing_status: 'available', deals: [{prescription_id: randomUUID(),
+      member_name: 'Household member', medicine_name: 'Example medicine', strength: '10 mg', form: 'tablet',
+      db_offers: [], research_status: 'complete', research_candidates: [{pharmacy: 'Amazon Pharmacy',
+        listing_url: 'https://pharmacy.amazon.com/example', price_cents: null,
+        verification_status: 'research_only'}]}]};
+  }});
+  try {
+    const r = await app.inject({url: '/v1/deals', headers: {authorization: 'Bearer '+token, 'x-housemed-household-key': householdKey}});
+    assert.equal(r.statusCode, 200);
+    assert.equal(r.json().deals[0].research_candidates[0].price_cents, null);
+    assert.equal(r.json().deals[0].research_candidates[0].verification_status, 'research_only');
   } finally { await app.close(); }
 });
 

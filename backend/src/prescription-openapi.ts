@@ -8,6 +8,10 @@ export const prescriptionOpenApi = {
   paths: {
     '/healthz': {get: {summary: 'API health', security: [], responses: {'200': {description: 'API is running; does not test AWS availability'}}}},
     '/v1/prescription-chat/state': {get: {summary: 'Read household members and saved prescriptions through AgentCore and MCP', responses: {'200': {description: 'Members, prescriptions, provider, AWS request ID and MCP trace'}, '401': {description: 'Invalid bearer token'}, '502': {description: 'AWS runtime unavailable'}}}},
+    '/v1/deals': {get: {summary: 'Read saved medicines, eligible database offers, and labeled Exa pharmacy research in one response',
+      parameters: [{in: 'header', name: 'X-Housemed-Household-Key', required: true, schema: {type: 'string', pattern: '^[a-f0-9]{64}$'}}],
+      responses: {'200': {description: 'Deals for the browser household. Research candidates are not verified quotes; missing prices are null.'},
+        '401': {description: 'Invalid bearer token'}, '502': {description: 'AgentCore unavailable'}}}},
     '/v1/prescription-chat': {post: {summary: 'Add a household member, extract a photo, select a member, prepare manual fields, or save one/all medicines',
       parameters: [{in: 'header', name: 'X-Housemed-Household-Key', required: true, schema: {type: 'string', pattern: '^[a-f0-9]{64}$'}}, {in: 'header', name: 'X-Housemed-Session-Id', required: false, schema: {type: 'string', format: 'uuid'}}],
       requestBody: {required: true, content: {'application/json': {schema: {$ref: '#/components/schemas/PrescriptionRequest'}}}},

@@ -40,6 +40,12 @@ def list_prescriptions(household_id: UUID) -> dict:
 
 
 @mcp.tool()
+def list_price_offers(household_id: UUID) -> dict:
+    """Read fresh verified pricing offers for saved prescriptions in one household."""
+    return {"offers": repo.list_price_offers(household_id)}
+
+
+@mcp.tool()
 def save_draft(household_id: UUID, request_id: UUID, fields: dict, normalization: dict) -> dict:
     """Persist extracted fields for review. This does not create a prescription."""
     return repo.save_draft(household_id, request_id, fields, normalization)

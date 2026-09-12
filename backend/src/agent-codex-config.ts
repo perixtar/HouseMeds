@@ -1,24 +1,29 @@
 import {isAbsolute,normalize} from 'node:path';
 
-export const AGENT_CODEX_VERSION='0.153.1';
+export const AGENT_CODEX_VERSION='0.153.4';
 export const AGENT_MODEL='gpt-5.4-mini-2026-03-17';
 export const HOUSEMED_READ_TOOLS=['search_catalog','get_listing_prices','get_medication_offers','get_source_status'] as const;
+export const EXA_READ_TOOLS=['web_search_exa','web_fetch_exa'] as const;
+export const EXA_MCP_URL='https://mcp.exa.ai/mcp?tools=web_search_exa,web_fetch_exa';
 export interface AgentCodexConfigOptions {
  instructionsPath:string;modelCatalogPath:string;nodePath:string;tsxLoaderPath:string;
  mcpScriptPath:string;mcpCwd:string;mcpEnv:{HOUSEMED_MCP_CONFIG:string};mockBaseUrl?:string;
+}
+export interface ResearchAgentCodexConfigOptions {
+ instructionsPath:string;modelCatalogPath:string;mockBaseUrl?:string;exaMcpUrl?:string;
 }
 function absolute(value:string):string{
  if(typeof value!=='string'||!isAbsolute(value)||/[\u0000-\u001f]/.test(value))throw Error('AGENT_CONFIG_REQUIRES_ABSOLUTE_PATH');
  return normalize(value);
 }
-// Pinned client capability metadata is required: features.shell_tool=false alone
-// still exposes apply_patch in Codex0.153.1. This does not change the API model.
-export function buildAgentModelCatalog():string{
+// Pinned client capability metadata is required: feature flags alone do not
+// remove every host tool. This does not change the API model.
+function modelCatalog(displayName:string,description:string,baseInstructions:string):string{
  return JSON.stringify({models:[{
-  slug:AGENT_MODEL,display_name:'HouseMed pricing agent',description:'Read-only medication pricing assistant',
+  slug:AGENT_MODEL,display_name:displayName,description,
   default_reasoning_level:'low',supported_reasoning_levels:[{effort:'low',description:'Bounded pricing lookup'}],
   shell_type:'unified_exec',visibility:'hide',supported_in_api:true,priority:0,upgrade:null,
-  model_messages:null,base_instructions:'Use the supplied HouseMed pricing instructions.',
+  model_messages:null,base_instructions:baseInstructions,
   include_skills_usage_instructions:false,include_plugin_usage_instructions:false,include_apps_usage_instructions:false,
   default_reasoning_summary:'none',support_verbosity:true,default_verbosity:'low',
   apply_patch_tool_type:null,web_search_tool_type:'text_and_image',supports_search_tool:false,
@@ -27,14 +32,19 @@ export function buildAgentModelCatalog():string{
   experimental_supported_tools:[],input_modalities:['text'],node_repl_disabled:true
  }]},null,2);
 }
-export function buildAgentCodexConfig(options:AgentCodexConfigOptions):string{
+export function buildAgentModelCatalog():string{
+ return modelCatalog('HouseMed pricing agent','Read-only medication pricing assistant','Use the supplied HouseMed pricing instructions.');
+}
+export function buildResearchAgentModelCatalog():string{
+ return modelCatalog('HouseMed research agent','Read-only medication source research','Use the supplied HouseMed medication research instructions.');
+}
+function buildBaseConfig(options:{instructionsPath:string;modelCatalogPath:string;mockBaseUrl?:string}):string{
  let baseUrl='https://api.openai.com/v1';
  if(options.mockBaseUrl!==undefined){
   const url=new URL(options.mockBaseUrl);
   if(url.protocol!=='http:'||url.hostname!=='127.0.0.1'||!url.port||url.username||url.password||url.search||url.hash)throw Error('AGENT_MOCK_PROVIDER_MUST_BE_LOOPBACK');
   baseUrl=url.href.replace(/\/$/,'');
  }
- if(Object.keys(options.mcpEnv).some(key=>key!=='HOUSEMED_MCP_CONFIG'))throw Error('AGENT_MCP_ENV_NOT_ALLOWED');
  const quote=JSON.stringify;
  const disabled=['shell_tool','unified_exec','shell_snapshot','apps','plugins','remote_plugin','browser_use','browser_use_external',
   'browser_use_full_cdp_access','computer_use','in_app_browser','in_app_chat','in_app_local_automation','image_generation',
@@ -76,6 +86,12 @@ enabled = false
 [shell_environment_policy]
 inherit = "none"
 ignore_default_excludes = false
+`;
+}
+export function buildAgentCodexConfig(options:AgentCodexConfigOptions):string{
+ if(Object.keys(options.mcpEnv).some(key=>key!=='HOUSEMED_MCP_CONFIG'))throw Error('AGENT_MCP_ENV_NOT_ALLOWED');
+ const quote=JSON.stringify;
+ return `${buildBaseConfig(options)}
 [mcp_servers.housemed]
 command = ${quote(absolute(options.nodePath))}
 args = ${quote(['--import',absolute(options.tsxLoaderPath),absolute(options.mcpScriptPath)])}
@@ -86,6 +102,35 @@ startup_timeout_sec = 10
 tool_timeout_sec = 15
 [mcp_servers.housemed.env]
 HOUSEMED_MCP_CONFIG = ${quote(absolute(options.mcpEnv.HOUSEMED_MCP_CONFIG))}
+[history]
+persistence = "none"
+[analytics]
+enabled = false
+`;
+}
+
+export function buildResearchAgentCodexConfig(options:ResearchAgentCodexConfigOptions):string{
+ const quote=JSON.stringify;
+ const exaMcpUrl=options.exaMcpUrl??EXA_MCP_URL,url=new URL(exaMcpUrl);
+ const production=exaMcpUrl===EXA_MCP_URL;
+ const loopback=options.mockBaseUrl!==undefined&&url.protocol==='http:'&&url.hostname==='127.0.0.1'&&Boolean(url.port)&&url.pathname==='/mcp'&&!url.username&&!url.password&&!url.search&&!url.hash;
+ if(!production&&!loopback)throw Error('AGENT_EXA_URL_NOT_ALLOWED');
+ return `${buildBaseConfig(options)}
+[mcp_servers.exa]
+url = ${quote(exaMcpUrl)}
+required = true
+enabled_tools = ${quote(EXA_READ_TOOLS)}
+startup_timeout_sec = 15
+tool_timeout_sec = 45
+default_tools_approval_mode = "approve"
+[mcp_servers.exa.env_http_headers]
+"x-api-key" = "EXA_API_KEY"
+[mcp_servers.exa.tools.web_search_exa]
+approval_mode = "approve"
+output_token_limit = 12000
+[mcp_servers.exa.tools.web_fetch_exa]
+approval_mode = "approve"
+output_token_limit = 16000
 [history]
 persistence = "none"
 [analytics]

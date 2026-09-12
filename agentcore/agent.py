@@ -4,6 +4,7 @@ import base64
 import json
 import os
 import time
+from datetime import datetime, timezone
 import boto3
 from botocore.config import Config
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
@@ -11,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from typing import Literal
 from models import Fields, Request
 from mcp_client import ToolCaller, connect_mcp
+from exa_research import PHARMACIES, research_medicines
 
 app = BedrockAgentCoreApp()
 METADATA_LABELS = {"pharmacy", "refill", "refills", "prescriber", "patient", "patient name", "date", "medicine list", "medication list"}
@@ -125,9 +127,10 @@ async def save_all(request, tools, members, member_id):
             "message": f"Saved {count} medicine{'s' if count != 1 else ''} for {member['nickname']}." if count else "All medicines from this photo are already saved."}
 
 
-async def handle(request: Request, tools, extractor=extract, interpreter=interpret_followup):
+async def handle(request: Request, tools, extractor=extract, interpreter=interpret_followup,
+                 researcher=research_medicines):
     tenant = str(request.household_id)
-    if request.action in ("state", "create_member"):
+    if request.action in ("state", "create_member", "deals"):
         await tools.call("ensure_household", household_id=tenant)
     if request.action == "create_member":
         if not request.nickname:
@@ -140,6 +143,35 @@ async def handle(request: Request, tools, extractor=extract, interpreter=interpr
     if request.action == "state":
         prescriptions = (await tools.call("list_prescriptions", household_id=tenant))["prescriptions"]
         return {"status": "ready", "members": members, "prescriptions": prescriptions}
+    if request.action == "deals":
+        prescriptions = (await tools.call("list_prescriptions", household_id=tenant))["prescriptions"]
+        offers_result, research_result = await asyncio.gather(
+            tools.call("list_price_offers", household_id=tenant), researcher(prescriptions),
+            return_exceptions=True)
+        db_available = not isinstance(offers_result, Exception)
+        db_offers = offers_result.get("offers", []) if db_available else []
+        research = research_result if not isinstance(research_result, Exception) else {}
+        by_prescription = {}
+        for offer in db_offers:
+            by_prescription.setdefault(offer["prescription_id"], []).append(offer)
+        nicknames = {member["id"]: member["nickname"] for member in members}
+        deals = []
+        for prescription in prescriptions:
+            fields = prescription["fields"]
+            medicine, strength, form = (str(fields.get(key) or "").strip() for key in
+                                         ("medication", "strength", "form"))
+            key = (medicine.casefold(), strength.casefold(), form.casefold())
+            researched = research.get(key, {"status": "unavailable", "candidates": []})
+            deals.append({"prescription_id": prescription["id"],
+                          "member_id": prescription["member_id"],
+                          "member_name": nicknames.get(prescription["member_id"], "Household member"),
+                          "medicine_name": medicine, "strength": strength, "form": form,
+                          "db_offers": by_prescription.get(prescription["id"], []),
+                          "research_status": researched["status"],
+                          "research_candidates": researched["candidates"]})
+        return {"status": "ready", "as_of": datetime.now(timezone.utc).isoformat(),
+                "pricing_status": "available" if db_available else "unavailable",
+                "research_pharmacies": list(PHARMACIES), "members": members, "deals": deals}
     if request.action == "confirm_all":
         return await save_all(request, tools, members, str(request.member_id) if request.member_id else None)
     if request.action == "confirm":

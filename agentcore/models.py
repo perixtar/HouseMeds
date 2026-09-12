@@ -40,7 +40,7 @@ class ReviewedDraft(BaseModel):
 
 class Request(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    action: Literal["chat", "state", "confirm", "confirm_all", "prepare", "create_member"] = "chat"
+    action: Literal["chat", "state", "deals", "confirm", "confirm_all", "prepare", "create_member"] = "chat"
     household_id: UUID
     request_id: UUID
     message: str = Field(default="", max_length=4000)

@@ -90,12 +90,28 @@ const saved = await request({
 | GET | `/healthz` | Public API-process health; does not invoke AWS |
 | GET | `/openapi.json` | Authenticated OpenAPI 3.1 specification |
 | GET | `/v1/prescription-chat/state` | Read members and saved prescriptions through AgentCore → MCP → Supabase |
+| GET | `/v1/deals` | Read saved medicines, eligible database offers, and labeled Exa pharmacy research in one response |
 | POST | `/v1/prescription-chat` | Add a member, extract, select a member, prepare a manual draft, or save |
 | OPTIONS | any API path | Unauthenticated browser CORS preflight |
 
-Every state read and POST requires `X-Housemed-Household-Key`, a persistent 32-byte random capability encoded as 64 lowercase hex characters. The backend derives the household UUID using `HOUSEMED_HOUSEHOLD_SECRET`; the client cannot submit a household ID. Normal browser tabs share localStorage; Incognito has a separate key and empty household. Missing keys fail closed, without falling back to the previous shared household.
+Every state/deals read and POST requires `X-Housemed-Household-Key`, a persistent 32-byte random capability encoded as 64 lowercase hex characters. The backend derives the household UUID using `HOUSEMED_HOUSEHOLD_SECRET`; the client cannot submit a household ID. Normal browser tabs share localStorage; Incognito has a separate key and empty household. Missing keys fail closed, without falling back to the previous shared household.
 
 Every POST requires a UUID `request_id`. Reuse it when retrying the **same** upload or manual preparation; use a new ID for a new intake. `X-Housemed-Session-Id` is an optional UUID and is returned in the response headers. Drafts live in Supabase and remain usable with a new session after a reload/runtime restart. Keep `draft_id` in your application's state for review and confirmation.
+
+`GET /v1/deals` returns one entry per saved prescription, including
+`prescription_id`, `member_name`, `medicine_name`, `strength`, `form`,
+`db_offers`, `research_status`, and `research_candidates`. Each eligible DB offer
+includes pharmacy, total `price_cents`, physical quantity/unit, source URL,
+availability, and observation time. AgentCore searches Amazon Pharmacy, Walmart
+Pharmacy, CVS Pharmacy, and Walgreens via Exa MCP in parallel with the DB offer
+read. Only medicine name/strength/form are sent to Exa, never member identity,
+directions, prescriber, or household ID. Research candidates are always labeled
+`verification_status: "research_only"`; they are not live, purchase-verified
+quotes and must not be ranked as equivalent to reviewed DB offers. Price and
+quantity are `null` unless a first-party page explicitly displays both.
+The response intentionally omits demo-only days supply, yearly savings, and
+deal-selection state. A pricing failure leaves `pricing_status: "unavailable"`
+and empty `db_offers` while preserving the saved-medicine list.
 
 Actions:
 

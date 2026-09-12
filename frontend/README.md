@@ -43,6 +43,8 @@ Deploy `dist/` to your frontend host. Vite includes `VITE_` values in the build:
 
 Each browser profile stores its own random household key in localStorage. Normal tabs on the same frontend origin share that household; Chrome Incognito starts with an empty household and keeps it only for that private browsing session. Reloads preserve members, while clearing site data loses the browser key. There is no account recovery or cross-device household sharing yet. The former shared development household remains in the database, but new browser households start empty. Add members by name; duplicates reuse the existing member. The main app uses the household prototype’s deals screens with saved AWS prescriptions. `deals.js` supplies clearly labeled example prices; no live quote, order, or prescription transfer is made. The AWS chat, image review, and prescription persistence remain connected to the shared backend.
 
+`api.js` also exports `callDealsApi()` for the new single `GET /v1/deals` endpoint. It returns saved-medicine fields, eligible database offers, and clearly labeled Exa research candidates from additional pharmacies. The existing screenshot prototype is not yet switched to this endpoint; its example prices remain visibly marked as mock until the AgentCore/API deployment and UI hookup are complete.
+
 See [the API contract, examples, architecture, and deployment instructions](../backend/PRESCRIPTION_API.md).
 
 ## Mock household prototype

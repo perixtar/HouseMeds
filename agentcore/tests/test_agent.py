@@ -16,6 +16,7 @@ class Tools:
         self.calls.append((name, args))
         return {"ensure_household": {"household_id":H}, "list_members": {"members": [{"id": M, "nickname": "Grandma"}]},
             "list_prescriptions": {"prescriptions": []},
+            "list_price_offers": {"offers": []},
             "create_member": {"id": M, "nickname": "Mom", "replayed": False},
             "create_prescriptions": {"saved": [{"id": P, "replayed": False}, {"id": "second", "replayed": False}]},
             "normalize_medication": {"name": "sertraline 100 MG Oral Tablet", "status": "verified"},
@@ -105,6 +106,57 @@ def test_manual_fields_prepare_a_review_draft_without_using_the_model():
     assert result["status"] == "needs_member"
     assert [name for name, _ in tools.calls] == ["list_members", "normalize_medication", "save_drafts"]
     assert tools.calls[-1][1]["prescriptions"][0]["directions"] == ""
+
+
+def test_deals_combines_database_and_exa_without_exposing_other_prescription_fields():
+    class DealTools(Tools):
+        async def call(self, name, **args):
+            if name == "list_prescriptions":
+                self.calls.append((name, args))
+                return {"prescriptions": [{"id": P, "member_id": M,
+                    "fields": {**FIELDS, "directions": "private directions", "prescriber": "private prescriber"}}]}
+            if name == "list_price_offers":
+                self.calls.append((name, args))
+                return {"offers": [{"prescription_id": P, "pharmacy": "Costco", "price_cents": "1250"}]}
+            return await super().call(name, **args)
+
+    async def research(prescriptions):
+        assert len(prescriptions) == 1
+        return {("zoloft", "100mg", "tablet"): {"status": "complete", "candidates": [
+            {"pharmacy": "Amazon Pharmacy", "listing_url": "https://pharmacy.amazon.com/example",
+             "price_cents": None, "verification_status": "research_only"}]}}
+
+    tools = DealTools()
+    result = asyncio.run(handle(Request(household_id=H, request_id=uuid4(), action="deals"),
+                                tools, researcher=research))
+    assert [name for name, _ in tools.calls] == ["ensure_household", "list_members", "list_prescriptions", "list_price_offers"]
+    assert result["deals"][0]["member_name"] == "Grandma"
+    assert result["deals"][0]["db_offers"][0]["price_cents"] == "1250"
+    assert result["deals"][0]["research_candidates"][0]["verification_status"] == "research_only"
+    assert "directions" not in result["deals"][0]
+    assert "prescriber" not in result["deals"][0]
+
+
+def test_deals_starts_database_and_exa_reads_in_parallel():
+    db_started, exa_started = asyncio.Event(), asyncio.Event()
+
+    class ParallelTools(Tools):
+        async def call(self, name, **args):
+            if name == "list_price_offers":
+                db_started.set()
+                await exa_started.wait()
+                return {"offers": []}
+            return await super().call(name, **args)
+
+    async def research(_prescriptions):
+        exa_started.set()
+        await db_started.wait()
+        return {}
+
+    result = asyncio.run(asyncio.wait_for(
+        handle(Request(household_id=H, request_id=uuid4(), action="deals"),
+               ParallelTools(), researcher=research), timeout=1))
+    assert result["pricing_status"] == "available"
 
 
 def test_member_creation_uses_mcp_without_a_model_or_prescription_write():

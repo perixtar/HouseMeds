@@ -71,6 +71,41 @@ class Repository:
                 join housemed.members m on m.id=p.member_id and m.household_id=p.household_id
                 where p.household_id=%s order by p.confirmed_at desc limit 100""", (household,)).fetchall()
 
+    def list_price_offers(self, household_id):
+        """Only fresh, verified, exact-strength cash observations for saved prescriptions.
+
+        A missing/ambiguous identity is omitted rather than guessed. The UI can
+        still show the prescription with an empty offer list.
+        """
+        with self.transaction(household_id) as (db, household):
+            return db.execute("""select p.id::text as prescription_id, s.name as pharmacy,
+                s.slug as source, l.url as listing_url, l.source_name as listing_name,
+                o.price_cents::text, (o.quantity*l.content_quantity)::text as physical_quantity,
+                l.content_unit, o.currency, o.program_key, o.location_key,
+                o.last_checked_at::text as observed_at, o.availability
+                from housemed.prescriptions p
+                join pricing.medications m
+                  on lower(btrim(m.name))=lower(btrim(p.fields->>'medication'))
+                 and regexp_replace(lower(m.strength),'[[:space:]]','','g')=
+                     regexp_replace(lower(p.fields->>'strength'),'[[:space:]]','','g')
+                 and lower(btrim(m.form))=lower(btrim(p.fields->>'form'))
+                 and not exists (select 1 from pricing.medications m2
+                   where m2.id<>m.id and lower(btrim(m2.name))=lower(btrim(m.name))
+                     and regexp_replace(lower(m2.strength),'[[:space:]]','','g')=
+                         regexp_replace(lower(m.strength),'[[:space:]]','','g')
+                     and lower(btrim(m2.form))=lower(btrim(m.form)))
+                join pricing.listings l on l.medication_id=m.id and l.match_status='verified'
+                 and l.content_quantity is not null and l.content_unit is not null
+                join pricing.sources s on s.id=l.source_id and s.enabled
+                join pricing.offers o on o.listing_id=l.id and o.active
+                 and o.availability='in_stock' and o.price_cents is not null
+                 and o.last_checked_at>=now()-interval '24 hours'
+                 and (o.valid_until is null or o.valid_until>now())
+                where p.household_id=%s and coalesce(p.fields->>'strength','')<>''
+                 and coalesce(p.fields->>'form','')<>''
+                order by p.confirmed_at desc, o.price_cents, o.id limit 500""",
+                (household,)).fetchall()
+
     def save_draft(self, household_id, request_id, fields, normalization):
         fields = Fields.model_validate(fields).model_dump()
         with self.transaction(household_id) as (db, household):

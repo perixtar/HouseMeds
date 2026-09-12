@@ -34,3 +34,17 @@ export async function callPrescriptionApi(body) {
   if (!response.ok || result.status === 'error') throw Error(result.message || 'The prescription API could not respond.');
   return result;
 }
+
+// One client-facing read for the deals screens. Pharmacy research remains
+// server-side in AgentCore; never send Exa credentials from the browser.
+export async function callDealsApi() {
+  if (!accessToken) throw Error('HouseMeds is not configured. Ask your teammate to check the frontend environment.');
+  const response = await fetch(apiUrl.replace(/\/$/, '') + '/v1/deals', {
+    method: 'GET', credentials: 'omit',
+    headers: {Authorization: `Bearer ${accessToken}`, 'X-Housemed-Session-Id': sessionId, 'X-Housemed-Household-Key': householdKey},
+    signal: AbortSignal.timeout(150_000),
+  });
+  const result = await response.json();
+  if (!response.ok || result.status === 'error') throw Error(result.message || 'The deals API could not respond.');
+  return result;
+}

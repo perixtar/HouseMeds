@@ -9,6 +9,7 @@ import time
 import zipfile
 import boto3
 from botocore.exceptions import ClientError
+from dotenv import dotenv_values
 
 ROOT = Path(__file__).resolve().parent
 CACHE = ROOT / ".cache"
@@ -25,7 +26,7 @@ def package():
         for file in target.rglob("*"):
             if file.is_file() and "__pycache__" not in file.parts and file.suffix != ".pyc":
                 z.write(file, file.relative_to(target))
-        for name in ["agent.py", "models.py", "mcp_client.py", "mcp_server.py", "normalization.py", "repository.py", "supabase-ca.crt"]:
+        for name in ["agent.py", "models.py", "mcp_client.py", "mcp_server.py", "exa_research.py", "normalization.py", "repository.py", "supabase-ca.crt"]:
             z.write(ROOT / name, name)
     return archive
 
@@ -34,6 +35,17 @@ def deploy(profile, region, archive, model_id=DEFAULT_MODEL):
     session = boto3.Session(profile_name=profile, region_name=region)
     account = session.client("sts").get_caller_identity()["Account"]
     s3, iam, runtime = session.client("s3"), session.client("iam"), session.client("bedrock-agentcore-control")
+    exa_secret_name = "housemed/exa-api-key"
+    exa_key = dotenv_values(ROOT.parent / "backend/.env.agent").get("EXA_API_KEY")
+    if exa_key:
+        secretsmanager = session.client("secretsmanager")
+        try:
+            secretsmanager.create_secret(Name=exa_secret_name,
+                SecretString=json.dumps({"EXA_API_KEY": exa_key}),
+                Description="HouseMeds AgentCore Exa MCP research key")
+        except secretsmanager.exceptions.ResourceExistsException:
+            secretsmanager.put_secret_value(SecretId=exa_secret_name,
+                SecretString=json.dumps({"EXA_API_KEY": exa_key}))
     bucket = f"housemed-agentcore-{account}-{region}"
     try:
         s3.head_bucket(Bucket=bucket, ExpectedBucketOwner=account)
@@ -85,11 +97,14 @@ def deploy(profile, region, archive, model_id=DEFAULT_MODEL):
                 "Resource": f"arn:aws:secretsmanager:{region}:{account}:secret:housemed/mcp-database-*"})
             env["HOUSEMED_DATABASE_SECRET_ARN"] = "housemed/mcp-database"
         else:
-            env.update(HOUSEMED_MCP_RUNTIME_ARN=output["mcp_arn"], HOUSEMED_MODEL_ID=model_id)
+            env.update(HOUSEMED_MCP_RUNTIME_ARN=output["mcp_arn"], HOUSEMED_MODEL_ID=model_id,
+                       HOUSEMED_EXA_SECRET_ARN=exa_secret_name)
             statements.extend([
                 {"Effect": "Allow", "Action": ["bedrock:InvokeModel"], "Resource": model_resources},
                 {"Effect": "Allow", "Action": ["bedrock-agentcore:InvokeAgentRuntime"],
-                 "Resource": [output["mcp_arn"], output["mcp_arn"] + "/runtime-endpoint/DEFAULT"]}])
+                 "Resource": [output["mcp_arn"], output["mcp_arn"] + "/runtime-endpoint/DEFAULT"]},
+                {"Effect": "Allow", "Action": ["secretsmanager:GetSecretValue"],
+                 "Resource": f"arn:aws:secretsmanager:{region}:{account}:secret:{exa_secret_name}-*"}])
         iam.put_role_policy(RoleName=role_name, PolicyName="HouseMedsRuntime", PolicyDocument=json.dumps({"Version": "2012-10-17", "Statement": statements}))
         if created:
             time.sleep(10)

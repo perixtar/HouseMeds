@@ -70,11 +70,16 @@ export function buildPrescriptionApi(config: PrescriptionApiConfig) {
   app.addHook('preValidation', async (req, reply) => {
     if (!sessionSchema.safeParse(req.headers['x-housemed-session-id']).success)
       return reply.code(400).send({error: 'invalid_session', message: 'X-Housemed-Session-Id must be a UUID.'});
-    if (req.url.split('?')[0].startsWith('/v1/prescription-chat') && !z.string().regex(/^[a-f0-9]{64}$/).safeParse(req.headers['x-housemed-household-key']).success)
+    if ((req.url.split('?')[0].startsWith('/v1/prescription-chat') || req.url.split('?')[0] === '/v1/deals') &&
+      !z.string().regex(/^[a-f0-9]{64}$/).safeParse(req.headers['x-housemed-household-key']).success)
       return reply.code(400).send({error: 'invalid_household_key', message: 'Supply a persistent 32-byte random X-Housemed-Household-Key as 64 lowercase hexadecimal characters.'});
   });
   app.get('/v1/prescription-chat/state', async (req, reply) => {
     const {result, session} = await invoke({action: 'state', request_id: randomUUID()}, req.headers['x-housemed-session-id'], req.headers['x-housemed-household-key'] as string);
+    return reply.header('X-Housemed-Session-Id', session).code(result.status === 'error' ? 502 : 200).send(result);
+  });
+  app.get('/v1/deals', async (req, reply) => {
+    const {result, session} = await invoke({action: 'deals', request_id: randomUUID()}, req.headers['x-housemed-session-id'], req.headers['x-housemed-household-key'] as string);
     return reply.header('X-Housemed-Session-Id', session).code(result.status === 'error' ? 502 : 200).send(result);
   });
   app.post('/v1/prescription-chat', async (req, reply) => {
