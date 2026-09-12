@@ -47,7 +47,7 @@ try{
    const window=dailyWindow(state!.first_window_at,new Date());
    if(!window?.open)await save('data/reports/pilot-last-tick.json',{at:new Date().toISOString(),status:window?'window_closed':'waiting_for_first_window',window});
    else {
-    const runSource=async(source:'healthwarehouse'|'costplus')=>{
+    const runSource=async(source:'healthwarehouse'|'costplus'|'costco')=>{
      const latest=(await pool.query(`select r.* from pricing.crawl_runs r join pricing.sources s on s.id=r.source_id where s.slug=$1 and coalesce(r.summary->>'access_channel','website')=$2 order by started_at desc,r.id desc limit 1`,[source,source==='costplus'?'api':'website'])).rows[0];
      if(latest?.summary?.source_paused)return {source,status:'paused',reason:latest.summary.reason};
      const attempts=(await pool.query(`select r.id,r.checkpoint from pricing.crawl_runs r join pricing.sources s on s.id=r.source_id
@@ -66,7 +66,7 @@ try{
       child.once('error',e=>{cleanup();reject(e);});child.once('close',code=>{cleanup();done(code);});
      });return {source,status:exit===0?'worker_finished':'worker_failed',exit_code:exit};
     };
-    const outcomes=await Promise.allSettled([runSource('healthwarehouse'),runSource('costplus')]);
+    const outcomes=await Promise.allSettled([runSource('healthwarehouse'),runSource('costplus'),runSource('costco')]);
     await save('data/reports/pilot-last-tick.json',{at:new Date().toISOString(),window,outcomes:outcomes.map(x=>x.status==='fulfilled'?x.value:{status:'scheduler_error',reason:x.reason instanceof Error?x.reason.message:'unknown_error'})});
    }
   }finally{if(!lockLost)await lock.query("select pg_advisory_unlock(hashtextextended('housemed:pilot-scheduler',0))").catch(()=>{lockLost=true;});lock.release(lockLost);}

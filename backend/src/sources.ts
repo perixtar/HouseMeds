@@ -152,6 +152,65 @@ export function healthwarehouse(snapshot:Snapshot,review?:Partial<Listing>):{lis
  if(!selected||!total||!offers.some(o=>o.quantity===quantity(selected)&&o.price_cents===cents(total)))throw Error('DEFAULT_PRICE_MISMATCH');
  return {listing,offers};
 }
+function normalizeCostcoForm(value:string):string {
+ const v=value.trim().toLowerCase();
+ if(['tab','tabs','tablet','tablets'].includes(v))return 'tablet';
+ if(['cap','caps','capsule','capsules'].includes(v))return 'capsule';
+ if(['sol','soln','solution'].includes(v))return 'solution';
+ if(['susp','suspension'].includes(v))return 'suspension';
+ if(['cream','crm'].includes(v))return 'cream';
+ if(['ointment','oint'].includes(v))return 'ointment';
+ if(['gel'].includes(v))return 'gel';
+ return v.replace(/s$/,'');
+}
+function parseCostcoName(value:string){
+ const compact=value.replace(/\s+/g,' ').trim();
+ const match=compact.match(/^(.+?)\s+(\d+(?:\.\d+)?(?:-\d+(?:\.\d+)?)?\s*(?:mg|mcg|g|gm|ml|%)(?:\/\d+(?:\.\d+)?\s*(?:mg|mcg|g|gm|ml))?)\s+([A-Za-z]+)(?:\s+(.+))?$/i);
+ if(!match)return null;
+ return {name:match[1].trim(),strength:match[2].replace(/\bgm\b/i,'g').replace(/\s+/g,' ').trim(),form:normalizeCostcoForm(match[3]),suffix:match[4]?.trim()??null};
+}
+function sameMedication(a:{name:string;strength:string;form:string},b:{name:string;strength:string;form:string}){
+ const clean=(x:string)=>x.toLowerCase().replace(/\s+/g,' ').trim();
+ return clean(a.name)===clean(b.name)&&clean(a.strength).replace(/\s/g,'')===clean(b.strength).replace(/\s/g,'')&&clean(a.form)===clean(b.form);
+}
+export function costco(snapshot:Snapshot,review?:Partial<Listing>):{listing:Listing;offers:Quote[]}{
+ const url=new URL(snapshot.url);
+ if(!['/drug-results-details-price','/cmpps'].includes(url.pathname))throw Error('COSTCO_UNSUPPORTED_PAGE');
+ const lines=snapshot.panel.replace(/\u00a0/g,' ').split(/\n+/).map(x=>x.trim()).filter(Boolean);
+ const rows:{label:'Generic Alternative'|'Brand Name';sourceName:string;manufacturer:string|null;parsed:ReturnType<typeof parseCostcoName>;offers:Quote[]}[]=[];
+ for(let i=0;i<lines.length;i++){
+  const labelMatch=lines[i].match(/^(Generic Alternative|Brand Name):$/i);
+  if(!labelMatch)continue;
+  const sourceName=lines[++i];if(!sourceName)throw Error('COSTCO_MISSING_PRODUCT_NAME');
+  const parsed=parseCostcoName(sourceName);
+  let manufacturer:string|null=null;const offers:Quote[]=[];
+  for(;i<lines.length;i++){
+   if(/^Mfr\.$/i.test(lines[i])){manufacturer=lines[i+1]??null;i++;continue;}
+   if(/^(Generic Alternative|Brand Name):$/i.test(lines[i])){i--;break;}
+   const quantityMatch=lines[i].match(/^(\d+(?:\.\d+)?)\s+([A-Za-z]+)$/);
+   if(quantityMatch&&/^\$?[\d,]+(?:\.\d{2})?$/.test(lines[i+1]??'')){
+    offers.push({quantity:quantity(quantityMatch[1]),price_cents:cents(lines[++i]),currency:'USD',availability:'unknown',
+     seller_key:'costco',location_key:'mail-order-us',program_key:'cash',
+     terms:{quote_kind:'source_product_total',shipping:null,taxes:null,availability_basis:'not_provided_by_source',source_quantity_unit:normalizeCostcoForm(quantityMatch[2]),manufacturer},
+     valid_until:null,active:true});
+   }
+  }
+  rows.push({label:labelMatch[1].toLowerCase().startsWith('brand')?'Brand Name':'Generic Alternative',sourceName,manufacturer,parsed,offers});
+ }
+ if(!rows.length)throw Error('COSTCO_NO_PRICE_ROWS');
+ const reviewMed=review?.medication;
+ const candidates=reviewMed?rows.filter(x=>x.parsed&&sameMedication(x.parsed,reviewMed)):rows;
+ if(candidates.length!==1)throw Error(reviewMed?'COSTCO_AMBIGUOUS_REVIEW_MATCH':'COSTCO_REVIEW_REQUIRED');
+ const row=candidates[0];if(!row.parsed)throw Error('COSTCO_UNPARSED_PRODUCT_NAME');if(!row.offers.length)throw Error('COSTCO_NO_OFFERS');
+ const contentUnit=row.offers[0].terms.source_quantity_unit;
+ if(typeof contentUnit!=='string'||row.offers.some(x=>x.terms.source_quantity_unit!==contentUnit))throw Error('COSTCO_MIXED_QUANTITY_UNITS');
+ const key=[url.pathname,url.searchParams.get('drugId')??url.searchParams.get('drugIdentifierParam')??url.searchParams.get('drugName')??url.searchParams.get('drugNameParam')??row.sourceName,row.sourceName].join(':');
+ const listing=applyReview({source_product_key:key,source_name:row.sourceName,url:snapshot.url,
+  brand_name:row.label==='Brand Name'?row.parsed.name:null,sold_as:contentUnit,content_quantity:'1',content_unit:contentUnit,
+  medication:{name:row.parsed.name.toLowerCase(),strength:row.parsed.strength.replace(/([0-9])([a-z%])/ig,'$1 $2').toLowerCase(),form:row.parsed.form,route:'oral',release_type:'immediate'},
+  metadata:{collection_method:'costco_public_price_page',manufacturer:row.manufacturer,source_label:row.label,source_suffix:row.parsed.suffix}},review);
+ return {listing,offers:row.offers};
+}
 export async function costplus(client:SourceClient,row:Json,url:string,quantities:string[],review?:Partial<Listing>,sourceProductKey?:string,onResponse?:(record:Json)=>void):Promise<{listing:Listing;offers:Quote[]}>{
  const normalized=normalizeUrl(String(row.url),sources.costplus.origin,'costplus');
  if(!normalized||normalized.reason||normalized.url!==url)throw Error('CATALOG_URL_MISMATCH');

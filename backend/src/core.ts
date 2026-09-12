@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Decimal } from 'decimal.js';
 
-export type SourceSlug = 'healthwarehouse'|'costplus';
+export type SourceSlug = 'healthwarehouse'|'costplus'|'costco';
 export type Availability = 'in_stock'|'out_of_stock'|'unknown';
 export type Json = Record<string,unknown>;
 export interface Medication {name:string; strength:string; form:string; route:string; release_type:string;}
@@ -23,6 +23,7 @@ export interface Observation {listing:Listing; offers:Quote[]; observed_at:strin
 export const sources = {
  healthwarehouse:{name:'HealthWarehouse',origin:'https://www.healthwarehouse.com',hosts:['www.healthwarehouse.com','healthwarehouse.com'],seeds:['/','/sitemap'],privatePaths:['/profile','/addresses','/patients','/payment','/orders','/prescriptions','/prescribers','/autoreorders','/login','/register','/cart','/checkout']},
  costplus:{name:'Cost Plus Drugs',origin:'https://www.costplusdrugs.com',hosts:['www.costplusdrugs.com','costplusdrugs.com'],seeds:['/','/medications/'],privatePaths:['/account','/cart','/health-profile','/prescription-confirmation','/prescription-manager','/callback','/chat','/optin','/create-account','/login','/sign-in','/sign-up','/checkout']},
+ costco:{name:'Costco Pharmacy',origin:'https://www.costco.com',hosts:['www.costco.com','costco.com','rx.costco.com'],seeds:['/pharmacy/drug-directory-search-results?insideDrugSearch=true&searchKeyword=','/cmpps'],privatePaths:['/account','/cart','/checkout','/LogonForm','/Logon','/pharmacy/login','/pharmacy/patient-profile','/pharmacy/prescription-status','/pharmacy/family-account','/pharmacy/refill-prescriptions','/pharmacy/transfer-prescriptions','/pharmacy/new-prescriptions']},
 } as const;
 export const CP_API='https://us-central1-costplusdrugs-publicapi.cloudfunctions.net/main';
 export function hash(value:string):string{return createHash('sha256').update(value).digest('hex');}
@@ -53,6 +54,7 @@ export function normalizeUrl(href:string,base:string,source:SourceSlug):{url:str
  const path=u.pathname.toLowerCase();
  let reason:string|null=null;
  if(conf.privatePaths.some(x=>path===x||path.startsWith(x+'/')))reason='private_or_transactional';
+ else if(source==='costco'&&!['/','/pharmacy/drug-directory-search-results','/drug-results-details-price','/cmpps'].some(x=>path===x||path.startsWith(x+'/')))reason='out_of_source_scope';
  else if(/\.(?:jpg|jpeg|png|webp|gif|svg|ico|css|js|map|woff2?|ttf|pdf|zip|mp4|mp3)$/i.test(path))reason='asset';
  else if(u.toString().length>1800)reason='url_length_requires_review';
  return {url:u.toString(),reason};
