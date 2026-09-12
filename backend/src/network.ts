@@ -2,7 +2,7 @@ import {Resolver} from 'node:dns/promises';import dns,{type LookupAddress} from 
 import {Socket,type LookupFunction} from 'node:net';import {Agent} from 'undici';
 type Address=LookupAddress&{ttl?:number};
 const cache=new Map<string,{until:number;addresses:Address[]}>(),pending=new Map<string,Promise<Address[]>>();
-const publicHost=(h:string)=>h.endsWith('.pooler.supabase.com')||h.endsWith('.supabase.co')||['www.healthwarehouse.com','healthwarehouse.com','www.costplusdrugs.com','costplusdrugs.com','us-central1-costplusdrugs-publicapi.cloudfunctions.net'].includes(h);
+const publicHost=(h:string)=>h.endsWith('.pooler.supabase.com')||h.endsWith('.supabase.co')||['www.healthwarehouse.com','healthwarehouse.com','www.costplusdrugs.com','costplusdrugs.com','us-central1-costplusdrugs-publicapi.cloudfunctions.net','rxnav.nlm.nih.gov'].includes(h);
 function queryNative(hostname:string,family:4|6):Promise<Address[]>{
  return new Promise((resolve,reject)=>{
   // Keep macOS resolver/cache behavior. lookup cannot be cancelled; a late callback

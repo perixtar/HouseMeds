@@ -1,18 +1,43 @@
+import type { MedicationForm, QuantityUnit } from '../domain/types';
+
 export interface PriceQuoteRequest {
-  medicineId: string;
-  name: string;
-  genericName: string;
+  /** Household-local line correlation id. */
+  medicineLineId: string;
+  /** Canonical pricing.medications.id. */
+  medicationId: string;
   quantity: number;
+  quantityUnit: QuantityUnit;
 }
 
 export interface PriceQuote {
-  medicineId: string;
-  /** Verbatim from the pricing response — never adjusted. */
+  medicineLineId: string;
+  medicationId: string;
+  name: string;
+  genericName: string;
+  strength: string;
+  form: MedicationForm;
+  quantityUnit: QuantityUnit;
+  /** Derived from the exact source total for display only. */
   unitPrice: number;
+  /** Exact source total for the requested physical quantity. */
+  total: number;
+}
+
+export interface CanonicalMedicationSummary {
+  medicationId: string;
+  name: string;
+  genericName: string;
+  strength: string;
+  form: MedicationForm;
+  route: string;
+  releaseType: string;
+  rxnormRxcui: string | null;
 }
 
 // Primary pricing source used on add/update. Distinct from PriceComparison.
 export interface PricingClient {
-  /** Throws PricingUnavailableError on timeout/failure — never a guessed price. */
+  /** Returns only canonical identities eligible for new household records. */
+  searchMedications(query: string): Promise<CanonicalMedicationSummary[]>;
+  /** Throws PricingUnavailableError on timeout, failure, or a missing exact quote. */
   getLatestPrices(requests: PriceQuoteRequest[]): Promise<PriceQuote[]>;
 }

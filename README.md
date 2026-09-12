@@ -2,7 +2,7 @@
 
 Medication catalog and pricing backend with a read-only CLI assistant and a prototype price-comparison web UI. Backend files live in [`backend/`](backend/); documentation lives in [`docs/`](docs/).
 
-The [HTML technical plan](docs/housemed-technical-plan.html) is the source of truth for architecture, implementation status, and MVP acceptance criteria. This README covers running the backend.
+The [HTML technical plan](docs/housemed-technical-plan.html) is the source of truth for architecture, implementation status, and MVP acceptance criteria. The proposed [medication normalization plan](docs/medication-normalization-plan.md) specifies the planned RxNorm-backed identity contract across the pricing backend and `MedAPI`. This README covers running the backend.
 
 ## Quick start on this Mac
 
@@ -68,6 +68,20 @@ For a loose tablet, `content_quantity` is normally `1`, so an offer with `orderi
 HouseMeds does not scale a 30-count price to estimate an unobserved 90- or 180-count price. It returns only an exact collected quantity. By default, offers also must be active, in stock, unexpired, and observed within the last 24 hours. Cost Plus prices with unconfirmed stock are excluded unless the caller explicitly sets `include_estimates=true`; those results remain labeled as requiring purchase verification.
 
 For the hackathon, a family medication list should be processed ephemerally by making one exact-quantity query per medication. Do not attach names or family relationships to the requests. Persisting patient or household information would require a deliberate privacy, consent, retention, and access-control design that is outside the current schema.
+
+### Incoming medication normalization
+
+The repository now contains the locally verified Milestone 1 implementation. New source identities are normalized into controlled form, strength-unit, and quantity-unit values and resolved to an active RxNorm SCD/SBD concept when a single compatible result exists. Source text and matching evidence are retained; approximate, ambiguous, conflicting, unsupported, combination-strength, and unreviewed veterinary matches never auto-link. The incoming MVP auto-links only identities whose single structured strength can be validated safely; combination products require the review/component workflow before they can be compared.
+
+The pricing catalog response adds `canonical_name`, `rxnorm_rxcui`, `rxnorm_term_type`, `normalization_status`, versions, and structured `components`. Existing rows return `normalization_status: "legacy"` until the separate backfill milestone. This schema/code has not yet been deployed to the shared service.
+
+Run the deterministic cross-service E2E after installing dependencies in both `backend/` and `MedAPI/`:
+
+```bash
+cd backend
+npm run e2e:normalization
+npm run e2e:normalization:live  # optional: calls the current NLM RxNorm API
+```
 
 ## Use the database-backed read API
 

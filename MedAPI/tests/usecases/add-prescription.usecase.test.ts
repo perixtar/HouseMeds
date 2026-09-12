@@ -28,8 +28,19 @@ describe('addPrescription', () => {
     const repository = fakeRepository();
     const jobQueue = fakeJobQueue();
     const pricingClient: PricingClient = {
+      searchMedications: vi.fn(async () => []),
       getLatestPrices: vi.fn(async (requests: PriceQuoteRequest[]) =>
-        requests.map((r) => ({ medicineId: r.medicineId, unitPrice: 5 })),
+        requests.map((r) => ({
+          medicineLineId: r.medicineLineId,
+          medicationId: r.medicationId,
+          name: 'Amoxicillin 500 mg Capsule',
+          genericName: 'amoxicillin',
+          strength: '500 mg',
+          form: 'capsule' as const,
+          quantityUnit: r.quantityUnit,
+          unitPrice: 5,
+          total: r.quantity * 5,
+        })),
       ),
     };
 
@@ -40,13 +51,22 @@ describe('addPrescription', () => {
       members: [
         {
           nickname: 'Rex',
-          medicines: [{ name: 'Amoxicillin', genericName: 'amoxicillin', quantity: 3 }],
+          medicines: [{ medicationId: '1', quantity: 3, quantityUnit: 'capsule' }],
         },
       ],
     });
 
     expect(result.totalPrice).toBe(15); // 3 * 5, from the pricing API — not guessed
     expect(result.members[0]?.medicines[0]?.unitPrice).toBe(5);
+    expect(result.members[0]?.medicines[0]).toEqual(
+      expect.objectContaining({
+        medicationId: '1',
+        name: 'Amoxicillin 500 mg Capsule',
+        strength: '500 mg',
+        form: 'capsule',
+        quantityUnit: 'capsule',
+      }),
+    );
     expect(repository.create).toHaveBeenCalledOnce();
     expect(jobQueue.enqueuePriceComparisonJob).toHaveBeenCalledWith(
       expect.objectContaining({ prescriptionId: 'p1', householdId: 'h1' }),
@@ -57,6 +77,7 @@ describe('addPrescription', () => {
     const repository = fakeRepository();
     const jobQueue = fakeJobQueue();
     const pricingClient: PricingClient = {
+      searchMedications: vi.fn(async () => []),
       getLatestPrices: vi.fn(async () => {
         throw new PricingUnavailableError('down');
       }),
@@ -68,7 +89,10 @@ describe('addPrescription', () => {
       addPrescription({
         householdId: 'h1',
         members: [
-          { nickname: 'Rex', medicines: [{ name: 'X', genericName: 'x', quantity: 1 }] },
+          {
+            nickname: 'Rex',
+            medicines: [{ medicationId: '999', quantity: 1, quantityUnit: 'tablet' }],
+          },
         ],
       }),
     ).rejects.toBeInstanceOf(PricingUnavailableError);

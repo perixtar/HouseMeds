@@ -8,6 +8,13 @@ export interface PriceComparisonQuote {
 export interface PriceComparison {
   readonly name: string;
   getQuotes(
-    medicines: { medicineId: string; name: string; genericName: string }[],
+    medicines: {
+      medicineId: string;
+      medicationId: string;
+      name: string;
+      genericName: string;
+      quantity: number;
+      quantityUnit: import('../domain/types').QuantityUnit;
+    }[],
   ): Promise<PriceComparisonQuote[]>;
 }

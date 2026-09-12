@@ -3,6 +3,7 @@ import {validateManifest,manifestHash,resultForOffers,collectionMetrics,WINDOW_M
 import {makePool} from './db.js';import {Repository} from './repository.js';import {EvidenceStore} from './evidence.js';
 import {SourceClient,SourceAccessError,healthwarehouse,costplus,type Snapshot} from './sources.js';
 import {sources,CP_API,normalizeUrl,hash,stable,type SourceSlug,type Json,type Listing} from './core.js';
+import {MedicationNormalizer,RxNormClient} from './normalization.js';
 const [command,slug,...args]=process.argv.slice(2);
 if(!['discover','collect','status'].includes(command)||!['healthwarehouse','costplus'].includes(slug))throw Error('Usage: npm run crawl -- discover|collect|status healthwarehouse|costplus [--max-pages N] [--minutes N] [--manifest path]');
 const source=slug as SourceSlug;
@@ -20,7 +21,7 @@ const maxPages=Number(option('--max-pages','100')),minutes=Number(option('--minu
 if(!Number.isInteger(maxPages)||maxPages<1||maxPages>10000||!Number.isFinite(minutes)||minutes<1||minutes>120)throw Error('INVALID_RUN_BUDGET');
 const start=Date.now(),deadline=Math.min(start+minutes*60000,windowStart?Date.parse(windowStart)+WINDOW_MS:Infinity);
 if(scheduled&&(start<Date.parse(windowStart!)||start>=deadline))throw Error('OUTSIDE_SCHEDULED_WINDOW');
-const pool=makePool(),repo=new Repository(pool),evidence=new EvidenceStore(),client=new SourceClient(source);
+const pool=makePool(),repo=new Repository(pool,new MedicationNormalizer(process.env.HOUSEMED_RXNORM_DISABLED==='1'?undefined:new RxNormClient())),evidence=new EvidenceStore(),client=new SourceClient(source);
 const sourceRow=await repo.source(source);
 if(command==='status'){
  console.log(JSON.stringify((await pool.query('select page_type,last_result,count(*)::int as count from pricing.crawl_pages where source_id=$1 group by page_type,last_result order by page_type,last_result',[sourceRow.id])).rows,null,2));await pool.end();process.exit(0);
