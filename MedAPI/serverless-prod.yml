@@ -1,0 +1,167 @@
+# Stage-locked config for `prod` — see serverless-dev.yml for the dev twin.
+# Deploy with `sls deploy --config serverless-prod.yml`, never a bare `sls deploy`.
+service: medhouse-api
+
+frameworkVersion: '3'
+
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: ${opt:region, 'us-west-1'}
+  stage: prod
+  memorySize: 256
+  timeout: 15
+  logRetentionInDays: 30
+  httpApi:
+    cors: true
+    # Verifies the Cognito JWT and injects its claims into
+    # requestContext.authorizer.jwt.claims before the Lambda runs.
+    authorizers:
+      cognitoJwtAuthorizer:
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.${self:provider.region}.amazonaws.com/${env:COGNITO_USER_POOL_ID_PROD}
+        audience:
+          - ${env:COGNITO_APP_CLIENT_ID_PROD}
+  environment:
+    NODE_ENV: production
+    LOG_LEVEL: ${env:LOG_LEVEL, 'info'}
+    # mock ships this stage on adapters/mock/ instead of real backends.
+    TARGET_SOURCE: ${env:TARGET_SOURCE, 'aws'}
+    # AWS_REGION is Lambda-reserved; CloudFormation rejects setting it directly.
+    # prod's own Cognito pool/client — never dev's. Not yet provisioned as of
+    # this writing — see the init-aws-services skill.
+    COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID_PROD}
+    COGNITO_APP_CLIENT_ID: ${env:COGNITO_APP_CLIENT_ID_PROD}
+    PRICE_COMPARISON_QUEUE_URL: https://sqs.${self:provider.region}.amazonaws.com/${aws:accountId}/medhouse-price-comparison-jobs-prod
+    IDEMPOTENCY_TABLE_NAME: ${self:custom.idempotencyTableName}
+    MONGODB_URI_SSM_PARAM: /medhouse/prod/mongodb-uri
+    PRICING_API_KEY_SSM_PARAM: /medhouse/prod/pricing-api-key
+    PRICING_API_BASE_URL: ${ssm:/medhouse/prod/pricing-api-base-url}
+    # HttpApi's physical id isn't known until CloudFormation creates it.
+    API_BASE_URL:
+      Fn::Join:
+        - ''
+        - - 'https://'
+          - Ref: HttpApi
+          - '.execute-api.'
+          - Ref: 'AWS::Region'
+          - '.'
+          - Ref: 'AWS::URLSuffix'
+  # Scoped, resource-level permissions only — no account-wide wildcards.
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - cognito-idp:SignUp
+            - cognito-idp:InitiateAuth
+            - cognito-idp:ForgotPassword
+            - cognito-idp:ConfirmForgotPassword
+          Resource:
+            - arn:aws:cognito-idp:${self:provider.region}:*:userpool/${env:COGNITO_USER_POOL_ID_PROD}
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+          Resource:
+            - arn:aws:sqs:${self:provider.region}:*:medhouse-price-comparison-jobs-prod
+        - Effect: Allow
+          Action:
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+          Resource:
+            - arn:aws:sqs:${self:provider.region}:*:medhouse-price-comparison-jobs-prod
+        - Effect: Allow
+          Action:
+            - ssm:GetParameter
+          Resource:
+            - arn:aws:ssm:${self:provider.region}:*:parameter/medhouse/prod/*
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - !GetAtt IdempotencyTable.Arn
+
+custom:
+  idempotencyTableName: medhouse-idempotency-prod
+  esbuild:
+    bundle: true
+    minify: true
+    sourcemap: true
+    target: node20
+    exclude:
+      - '@aws-sdk/*' # present in the Node 20 Lambda runtime image
+
+# esbuild only bundles JS — copy @fastify/swagger-ui's static assets in too.
+package:
+  patterns:
+    - 'node_modules/@fastify/swagger-ui/static/**'
+
+functions:
+  api:
+    handler: src/lambda.handler
+    description: MedHouse API (prod) — all HTTP routes via one Fastify app
+    events:
+      # Public routes — exact paths win over the authorized catch-all below.
+      - httpApi:
+          path: /register
+          method: POST
+      - httpApi:
+          path: /login
+          method: POST
+      - httpApi:
+          path: /reset-password
+          method: POST
+      - httpApi:
+          path: /reset-password/confirm
+          method: POST
+      - httpApi:
+          path: /health
+          method: GET
+      - httpApi:
+          path: /docs
+          method: GET
+      - httpApi:
+          path: /docs/{proxy+}
+          method: GET
+      # Everything else — requires a verified Cognito JWT.
+      - httpApi:
+          path: /{proxy+}
+          method: '*'
+          authorizer:
+            name: cognitoJwtAuthorizer
+
+  worker:
+    handler: src/worker.handler
+    description: MedHouse (prod) — getPriceComparison, the one heavy-compute path, off the request cycle
+    # No reservedConcurrency: account concurrency quota is 10, AWS requires >=10 unreserved.
+    events:
+      - sqs:
+          arn: arn:aws:sqs:${self:provider.region}:${aws:accountId}:medhouse-price-comparison-jobs-prod
+          batchSize: 1
+
+resources:
+  Resources:
+    # Idempotency records for add/update-prescription.
+    IdempotencyTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.idempotencyTableName}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: expiration
+          Enabled: true
+
+plugins:
+  - serverless-esbuild
