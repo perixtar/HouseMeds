@@ -129,3 +129,8 @@ label select, label textarea { display: block; width: 100%; padding: 12px; margi
 #memberForm input { min-width: 0; }
 #addMember { flex-shrink: 0; }
 #memberStatus { min-height: 18px; margin: 0 0 12px; }
+.batch-save { margin: 0 0 24px; padding: 16px; border: 1px solid #addcf3; border-radius: 14px; background: var(--mint); }
+.batch-save details { margin-top: 10px; font-size: 14px; }
+.batch-save summary { cursor: pointer; }
+.batch-save li { margin: 6px 0; }
+.batch-save p:last-child { margin-bottom: 0; }

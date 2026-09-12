@@ -11,11 +11,13 @@ if (!householdKey) {
   sessionStorage.removeItem('housemed_mobile_draft_id');
 }
 // AgentCore keeps existing sessions on their original code version. Start a new
-// session for the browser-household protocol, retaining drafts in the database.
-const sessionStorageKey = 'housemed_api_session_v2';
+// session for the batch-save conversation protocol, retaining drafts in the database.
+const sessionStorageKey = 'housemed_api_session_v4';
 const sessionId = sessionStorage.getItem(sessionStorageKey) || crypto.randomUUID();
 sessionStorage.setItem(sessionStorageKey, sessionId);
 sessionStorage.removeItem('housemed_api_session');
+sessionStorage.removeItem('housemed_api_session_v2');
+sessionStorage.removeItem('housemed_api_session_v3');
 // Remove credentials retained by older versions of the connection settings UI.
 sessionStorage.removeItem('housemed_api_url');
 sessionStorage.removeItem('housemed_api_token');

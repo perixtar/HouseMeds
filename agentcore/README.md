@@ -108,3 +108,7 @@ For Chrome acceptance, upload a photo, verify the draft and member choice, revie
 - [InvokeAgentRuntime API](https://docs.aws.amazon.com/bedrock-agentcore/latest/APIReference/API_InvokeAgentRuntime.html)
 - [NLM RxNorm API](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html)
 - [heic-to browser conversion and CSP build](https://github.com/hoppergee/heic-to)
+
+## Batch saves and follow-up conversation
+
+`create_prescriptions` normalizes the remaining photo batch, then commits it in one tenant-scoped PostgreSQL transaction. Draft locks and unique keys prevent duplicate saves. `confirm_all` is the explicit button action; chat follow-ups use the configured Bedrock model with the active list, member selection, and pending save intent. A member-name reply completes a pending save-all; unrelated questions and cancellation do not write. The frontend retains edits and selected member across draft switches/reloads.

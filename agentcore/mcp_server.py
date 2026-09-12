@@ -1,4 +1,5 @@
 """IAM-protected HouseMeds MCP server, deployed as a separate AgentCore runtime."""
+import asyncio
 from uuid import UUID
 from mcp.server.fastmcp import FastMCP
 from repository import Repository
@@ -63,6 +64,33 @@ async def create_prescription(household_id: UUID, draft_id: UUID, member_id: UUI
     reviewed = Fields.model_validate(fields)
     normalization = await normalize(f"{reviewed.medication} {reviewed.strength} {reviewed.form}".strip())
     return repo.create_prescription(household_id, draft_id, member_id, reviewed.model_dump(), normalization)
+
+
+@mcp.tool()
+async def create_prescriptions(household_id: UUID, draft_id: UUID, member_id: UUID, reviewed_drafts: list[dict]) -> dict:
+    """Save all remaining medicines from one photo for the user's selected member, atomically."""
+    from models import ReviewedDraft
+    edits = [ReviewedDraft.model_validate(d) for d in reviewed_drafts]
+    if len(edits) > 40 or len({d.draft_id for d in edits}) != len(edits):
+        raise ValueError("invalid_reviewed_drafts")
+    root = repo.get_draft(household_id, draft_id)
+    drafts = root.get("batch", [root])
+    overrides = {str(d.draft_id): d.fields.model_dump() for d in edits}
+    # A completed retry may have no remaining drafts. Never write an unrelated draft.
+    if any(key not in {d["id"] for d in drafts} for key in overrides):
+        if drafts:
+            raise ValueError("draft_not_in_batch")
+        return {"saved": repo.create_prescriptions(household_id, draft_id, member_id, [])}
+    semaphore = asyncio.Semaphore(4)
+
+    async def prepare(draft):
+        fields = overrides.get(draft["id"], draft["fields"])
+        async with semaphore:
+            identity = await normalize(" ".join(fields[k] for k in ("medication", "strength", "form") if fields[k]))
+        return {"draft_id": draft["id"], "fields": fields, "normalization": identity}
+
+    entries = await asyncio.gather(*(prepare(draft) for draft in drafts))
+    return {"saved": repo.create_prescriptions(household_id, draft_id, member_id, entries)}
 
 
 if __name__ == "__main__":

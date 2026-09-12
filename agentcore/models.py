@@ -32,9 +32,15 @@ class Photo(BaseModel):
         return value
 
 
+class ReviewedDraft(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    draft_id: UUID
+    fields: Fields
+
+
 class Request(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    action: Literal["chat", "state", "confirm", "prepare", "create_member"] = "chat"
+    action: Literal["chat", "state", "confirm", "confirm_all", "prepare", "create_member"] = "chat"
     household_id: UUID
     request_id: UUID
     message: str = Field(default="", max_length=4000)
@@ -43,6 +49,8 @@ class Request(BaseModel):
     member_id: UUID | None = None
     fields: Fields | None = None
     nickname: str | None = Field(default=None, min_length=1, max_length=80)
+    reviewed_drafts: list[ReviewedDraft] = Field(default_factory=list, max_length=40)
+    pending_action: Literal["confirm_all"] | None = None
 
     @field_validator("nickname", mode="before")
     @classmethod

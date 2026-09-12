@@ -23,11 +23,11 @@ The frontend uses ordinary `fetch`, bearer authentication, and no cookies. All f
 2. Attach a photo from `data/` and send **Add this prescription**.
 3. Reply with a household member's nickname or tap their choice.
 4. Open **Review prescription**; check the populated form against the photo.
-5. **Save prescription**. The household list and counts refresh from the API response.
+5. Choose **Save all N medicines** to save the photo batch, or **Save this medicine only**. You can also type **save all medicine** in chat; if no member is selected, choose one when asked and the agent saves the list. The household list and counts refresh from the API response.
 6. Reload and select the member: the saved record is read back from Supabase.
 7. Tap **Get your deals** to open the prototype household savings screen. Select a medicine, compare the example offers, and use **Select this deal** to preview selection. Back navigation returns to deals, medicines, and the household picker.
 
-PNG, JPEG, WebP, and HEIC are supported. HEIC conversion is bundled into the frontend and runs locally. For multi-medicine photographs, review and save each medicine individually. Remaining drafts are restored for the current tab. Manual entry uses the same API and persistence without model extraction.
+PNG, JPEG, WebP, and HEIC are supported. HEIC conversion is bundled into the frontend and runs locally. For multi-medicine photographs, use Save all or save each medicine individually. Edits survive switching medicines. Remaining drafts, member selection, and a pending save-all request are restored for the current tab. Free-text follow-ups use the model with the active intake context; they no longer fall back to an exact-name-only response. Manual entry uses the same API and persistence without model extraction.
 
 ## Configuration and build
 

@@ -111,3 +111,53 @@ def test_new_browser_household_starts_empty_and_survives_repeat_initialization(d
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with repo.transaction(household) as (db,_):
             db.execute("insert into housemed.households(id,name) values(%s,'Other household')",(uuid4(),))
+
+
+def batch(repo, household):
+    drafts = repo.save_drafts(household, uuid4(), [Fields(medication="A").model_dump(), Fields(medication="B").model_dump()], {})
+    return drafts, [{"draft_id": d["id"], "fields": d["fields"], "normalization": {}} for d in drafts]
+
+
+def test_batch_saves_are_atomic_and_concurrent_retries_do_not_duplicate(database):
+    repo,h1,_,m1,_,_ = database
+    drafts, entries = batch(repo, h1)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        responses = list(pool.map(lambda _: repo.create_prescriptions(h1, drafts[0]["id"], m1, entries), range(2)))
+    assert {r["id"] for r in responses[0]} == {r["id"] for r in responses[1]}
+    assert sum(not r["replayed"] for response in responses for r in response) == 2
+    assert repo.get_draft(h1, drafts[0]["id"])["batch"] == []
+    assert repo.create_prescriptions(h1, drafts[0]["id"], m1, []) == []
+
+
+def test_batch_rolls_back_earlier_insert_if_later_draft_conflicts(database):
+    repo,h1,_,m1,_,_ = database
+    drafts, entries = batch(repo, h1)
+    different = Fields(medication="Edited B").model_dump()
+    repo.create_prescription(h1, drafts[1]["id"], m1, different, {})
+    with pytest.raises(ValueError, match="different_values"):
+        repo.create_prescriptions(h1, drafts[0]["id"], m1, entries)
+    # The first insert was rolled back, even though its fields were valid.
+    assert [d["id"] for d in repo.get_draft(h1, drafts[0]["id"])["batch"]] == [drafts[0]["id"]]
+
+
+def test_batch_rejects_foreign_members_unrelated_drafts_and_missing_items(database):
+    repo,h1,h2,m1,m2,_ = database
+    drafts, entries = batch(repo, h1)
+    foreign, _ = batch(repo, h2)
+    with pytest.raises(ValueError, match="member_not_found"):
+        repo.create_prescriptions(h1, drafts[0]["id"], m2, entries)
+    with pytest.raises(ValueError, match="draft_not_found"):
+        repo.create_prescriptions(h2, drafts[0]["id"], m2, entries)
+    with pytest.raises(ValueError, match="draft_not_in_batch"):
+        repo.create_prescriptions(h1, drafts[0]["id"], m1, [*entries, {**entries[0], "draft_id": foreign[0]["id"]}])
+    with pytest.raises(ValueError, match="incomplete_batch"):
+        repo.create_prescriptions(h1, drafts[0]["id"], m1, entries[:1])
+    assert len(repo.get_draft(h1, drafts[0]["id"])["batch"]) == 2
+
+
+def test_batch_preserves_reviewed_edits(database):
+    repo,h1,_,m1,_,_ = database
+    drafts, entries = batch(repo, h1)
+    entries[0]["fields"]["strength"] = "75 mcg"
+    rows = repo.create_prescriptions(h1, drafts[0]["id"], m1, entries)
+    assert rows[0]["fields"]["strength"] == "75 mcg"

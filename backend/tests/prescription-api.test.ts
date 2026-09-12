@@ -86,7 +86,7 @@ test('the authenticated OpenAPI spec describes the frontend request contract', a
     assert.equal(r.statusCode, 200);
     const spec = r.json(); assert.equal(spec.openapi, '3.1.0');
     assert.equal(spec.components.securitySchemes.bearerAuth.scheme, 'bearer');
-    assert.deepEqual(spec.components.schemas.PrescriptionRequest.properties.action.enum, ['chat','confirm','prepare','create_member']);
+    assert.deepEqual(spec.components.schemas.PrescriptionRequest.properties.action.enum, ['chat','confirm','confirm_all','prepare','create_member']);
   } finally { await app.close(); }
 });
 
@@ -116,5 +116,20 @@ test('browser households are isolated, stable across tabs, and cannot fall back 
     }
     assert.equal(seen[0].payload.household_id,seen[2].payload.household_id);
     assert.notEqual(seen[0].payload.household_id,seen[1].payload.household_id);
+  } finally {await app.close();}
+});
+
+test('batch confirmation passes reviewed edits and chat intent but rejects oversized batches', async () => {
+  const {app,seen}=setup();
+  const headers={'x-housemed-household-key':householdKey,authorization:'Bearer '+token};
+  const fields={medication:'Example',strength:'75 mcg',form:'',directions:'',quantity:'',refills:'',prescriber:'',pharmacy:'',warnings:[]};
+  const draft_id=randomUUID(),member_id=randomUUID();
+  try {
+    const payload={action:'confirm_all',request_id:randomUUID(),draft_id,member_id,reviewed_drafts:[{draft_id,fields}]};
+    assert.equal((await app.inject({method:'POST',url:'/v1/prescription-chat',headers,payload})).statusCode,200);
+    assert.deepEqual(seen[0].payload.reviewed_drafts,payload.reviewed_drafts);
+    assert.equal((await app.inject({method:'POST',url:'/v1/prescription-chat',headers,payload:{...payload,action:'chat',message:'Grandma',pending_action:'confirm_all'}})).statusCode,200);
+    assert.equal(seen[1].payload.pending_action,'confirm_all');
+    assert.equal((await app.inject({method:'POST',url:'/v1/prescription-chat',headers,payload:{...payload,reviewed_drafts:Array(41).fill({draft_id,fields})}})).statusCode,400);
   } finally {await app.close();}
 });

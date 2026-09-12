@@ -100,10 +100,12 @@ Every POST requires a UUID `request_id`. Reuse it when retrying the **same** upl
 Actions:
 
 - `chat` with `message` and optional `image`: transcribe prescription details, normalize the first medicine, and save review drafts. Returns `needs_member` plus `members`, `draft`, and `drafts`.
-- `chat` with `draft_id` and a member's exact nickname: select a database member for the review form. Returns `needs_review` and `selected_member_id`. A blank message restores the draft and its remaining batch.
+- `chat` with `draft_id`: handle a follow-up using the active medicine list and `member_id`. The model can answer intake questions, select a member, or request one/all saves. A blank message restores the draft without saving. Retain returned `pending_action: "confirm_all"` and send it with the member-selection reply to complete a previously requested save-all. Cancellation clears it.
 - `create_member` with `nickname` (trimmed, 1–80 characters): persist a member through AgentCore and MCP. Returns `member_created`, the member, and refreshed members. Reuse `request_id` when retrying; a case-insensitive duplicate nickname reuses the member.
 - `prepare` with `fields`: create a manual-entry draft without model extraction. Returns a draft; it is not a saved prescription yet.
 - `confirm` with `draft_id`, `member_id`, and reviewed `fields`: persist once, then return `saved`, the saved `prescription`, and the refreshed `prescriptions` list. Changing an already-saved draft's member/fields is rejected.
+
+- `confirm_all` with `draft_id`, `member_id`, and optional `reviewed_drafts: [{draft_id, fields}]`: normalize and save every remaining medicine from the same photo in one database transaction. Returns `saved_all`, `saved_count`, and refreshed `prescriptions`. Repeating a completed save does not duplicate records. Only drafts in the same household and photo batch are eligible.
 
 `fields` contains string values for `medication`, `strength`, `form`, `directions`, `quantity`, `refills`, `prescriber`, and `pharmacy`, plus a `warnings` string array. Supply empty strings for missing values and `[]` for no warnings. `medication` is required. The backend rejects extra fields, including a caller-supplied `household_id`.
 
@@ -111,7 +113,7 @@ Photos: PNG, JPEG, or WebP, at most **3.75 MB decoded**, no data-URL prefix. The
 
 Successful responses include `provider: "aws-agentcore"`, an `aws_request_id`, and MCP `trace` entries. Photo extraction also includes `model_request_id`. `needs_details` means no usable prescription information was found. Unknown medication identities remain unverified, preserving the original text. A brand/strength with no form may resolve to an ingredient-strength concept without inventing a dosage form.
 
-Errors: `400` invalid payload/session, `401` invalid/missing token, `413` oversized request, `502` runtime/tool failure. Browser-readable CORS headers are included on API errors. Do not claim a save succeeded until the API returns `status: "saved"`. Retry uncertain saves with the same draft; the database prevents duplicates.
+Errors: `400` invalid payload/session, `401` invalid/missing token, `413` oversized request, `502` runtime/tool failure. Browser-readable CORS headers are included on API errors. Do not claim a save succeeded until the API returns `status: "saved"` or `status: "saved_all"`. Retry uncertain saves with the same draft; the database prevents duplicates.
 
 ## Run the API locally instead
 
