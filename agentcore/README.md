@@ -68,10 +68,11 @@ Apply these versioned migrations to the existing HouseMeds Supabase project usin
 - `backend/supabase/migrations/20260912210000_prescription_intake.sql`
 - `backend/supabase/migrations/20260912214500_prescription_photo_batches.sql`
 - `backend/supabase/migrations/20260912220000_mcp_pricing_read.sql` (read-only pricing access for the deals endpoint)
+- `backend/supabase/migrations/20260912223000_member_creation.sql`
 
-For a new installation, `setup_database.py prepare` creates an ignored, mode-600 SQL setup file using the host/project from `backend/.env`'s `READ_DATABASE_URL`. The generated SQL includes both migrations, a **new** restricted service login's SCRAM verifier, and a clearly named test household with Grandma and Self. Apply this setup once; do not reapply it to an already migrated database. No existing administrator or reader password is changed.
+For a new installation, `setup_database.py prepare` creates an ignored, mode-600 SQL setup file using the host/project from `backend/.env`'s `READ_DATABASE_URL`. The generated SQL includes the four migrations, a **new** restricted service login's SCRAM verifier, and a clearly named test household with Grandma and Self. Apply this setup once; do not reapply it to an already migrated database. No existing administrator or reader password is changed.
 
-After applying the prepared SQL, `setup_database.py finish` verifies the service login, stores it as `housemed/mcp-database` in AWS Secrets Manager, and writes `.env.agentcore`. Only the MCP role reads this secret. The `housemed_mcp` database role cannot create schemas/households/members or write pricing data. The separate deals migration grants it SELECT only on sources, medications, listings, and offers. The intake schema is not exposed through the Supabase public Data API. Parameterized tenant conditions and RLS both scope requests to a household.
+After applying the prepared SQL, `setup_database.py finish` verifies the service login, stores it as `housemed/mcp-database` in AWS Secrets Manager, and writes `.env.agentcore`. Only the MCP role reads this secret. The `housemed_mcp` database role cannot create schemas or write pricing data; it can create households and members only within its row-level-security scope. The separate deals migration grants it SELECT only on pricing sources, medications, listings, and offers. The intake schema is not exposed through the Supabase public Data API. Parameterized tenant conditions and RLS both scope requests to a household.
 
 For optional Exa pharmacy discovery, keep `EXA_API_KEY` in ignored `backend/.env.agent` when deploying. `deploy.py` stores it in the separate `housemed/exa-api-key` AWS secret and grants only the AgentCore agent role access. The key is not sent to browsers or the MCP database runtime. Without the key, `/v1/deals` still returns saved medicines and DB offers with `research_status: "not_configured"`. Exa results are research leads, never purchase-verified quotes.
 
@@ -79,7 +80,7 @@ For optional Exa pharmacy discovery, keep `EXA_API_KEY` in ignored `backend/.env
 
 The legacy diagnostic web adapter is a **local, single-household application**. It binds to loopback, checks Host and Origin, and uses an HttpOnly SameSite session cookie. Browsers cannot submit a household ID or receive AWS/database credentials. Runtime payloads come from trusted IAM-authorized backend callers; household authorization is that caller's responsibility. Do not give end-user IAM identities direct access to the agent runtime.
 
-The shared HTTPS API accepts every frontend origin and binds its bearer token to a configured household. Supporting multiple independently authorized households requires a per-user authenticated household resolver. This implementation does not claim public multi-tenant authentication, clinical validation, or a healthcare compliance certification.
+The shared HTTPS API accepts every frontend origin and derives household identity from a random browser capability plus a stable server-only HMAC secret. Missing browser keys are rejected. `ensure_household` initializes an empty tenant; `create_member` validates explicit nicknames and deduplicates retries through MCP without model extraction. The MCP role can insert households and members only within its row-level-security scope. Browser isolation is anonymous and is not Cognito/user-account authentication. This implementation does not claim public multi-tenant authentication, clinical validation, or a healthcare compliance certification.
 
 ## Verification
 
@@ -110,3 +111,7 @@ For Chrome acceptance, upload a photo, verify the draft and member choice, revie
 - [InvokeAgentRuntime API](https://docs.aws.amazon.com/bedrock-agentcore/latest/APIReference/API_InvokeAgentRuntime.html)
 - [NLM RxNorm API](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html)
 - [heic-to browser conversion and CSP build](https://github.com/hoppergee/heic-to)
+
+## Batch saves and follow-up conversation
+
+`create_prescriptions` normalizes the remaining photo batch, then commits it in one tenant-scoped PostgreSQL transaction. Draft locks and unique keys prevent duplicate saves. `confirm_all` is the explicit button action; chat follow-ups use the configured Bedrock model with the active list, member selection, and pending save intent. A member-name reply completes a pending save-all; unrelated questions and cancellation do not write. The frontend retains edits and selected member across draft switches/reloads.

@@ -41,6 +41,29 @@ class Repository:
         with self.transaction(household_id) as (db, household):
             return db.execute("select id::text, nickname from housemed.members where household_id=%s order by nickname", (household,)).fetchall()
 
+    def ensure_household(self, household_id):
+        with self.transaction(household_id) as (db, household):
+            db.execute("insert into housemed.households(id,name) values(%s,'My household') on conflict(id) do nothing", (household,))
+            return {"household_id": household}
+
+    def create_member(self, household_id, request_id, nickname):
+        nickname = nickname.strip()
+        if not 1 <= len(nickname) <= 80:
+            raise ValueError("invalid_member_nickname")
+        member_id = uuid5(UUID(str(household_id)), "member:" + str(UUID(str(request_id))))
+        with self.transaction(household_id) as (db, household):
+            db.execute("select pg_advisory_xact_lock(hashtextextended(%s,0))", ("members:" + household,))
+            previous = db.execute("select id::text,nickname from housemed.members where household_id=%s and id=%s", (household, member_id)).fetchone()
+            if previous:
+                if previous["nickname"] != nickname:
+                    raise ValueError("member_request_already_used")
+                return dict(previous, replayed=True)
+            existing = db.execute("select id::text,nickname from housemed.members where household_id=%s and lower(nickname)=lower(%s)", (household, nickname)).fetchone()
+            if existing:
+                return dict(existing, replayed=True)
+            row = db.execute("insert into housemed.members(id,household_id,nickname) values(%s,%s,%s) returning id::text,nickname", (member_id, household, nickname)).fetchone()
+            return dict(row, replayed=False)
+
     def list_prescriptions(self, household_id):
         with self.transaction(household_id) as (db, household):
             return db.execute("""select p.id::text, p.member_id::text, m.nickname, p.fields,
@@ -147,3 +170,47 @@ class Repository:
                 values(%s,%s,%s,%s,%s) returning id::text,member_id::text,fields,normalization""",
                 (household, str(member_id), str(draft_id), Jsonb(fields), Jsonb(normalization))).fetchone()
             return dict(row, nickname=member["nickname"], replayed=False)
+
+    def create_prescriptions(self, household_id, draft_id, member_id, entries):
+        """Commit the remaining photo batch together; concurrent retries cannot duplicate it."""
+        if len(entries) > 40:
+            raise ValueError("invalid_prescription_count")
+        entries = [dict(e, draft_id=str(UUID(str(e["draft_id"]))),
+                        fields=Fields.model_validate(e["fields"]).model_dump()) for e in entries]
+        if len({e["draft_id"] for e in entries}) != len(entries):
+            raise ValueError("duplicate_draft")
+        with self.transaction(household_id) as (db, household):
+            root = db.execute("select id,intake_id from housemed.drafts where household_id=%s and id=%s",
+                              (household, str(UUID(str(draft_id))))).fetchone()
+            if not root:
+                raise ValueError("draft_not_found")
+            # Lock in a stable order, including drafts another request may just have saved.
+            rows = db.execute("""select id::text from housemed.drafts where household_id=%s
+                and (intake_id=%s or id=%s) order by id for update""",
+                (household, root["intake_id"], root["id"])).fetchall()
+            ids = {row["id"] for row in rows}
+            if any(e["draft_id"] not in ids for e in entries):
+                raise ValueError("draft_not_in_batch")
+            member = db.execute("select id::text,nickname from housemed.members where household_id=%s and id=%s",
+                                (household, str(UUID(str(member_id))))).fetchone()
+            if not member:
+                raise ValueError("member_not_found")
+            saved = db.execute("""select id::text,draft_id::text,member_id::text,fields,normalization
+                from housemed.prescriptions where household_id=%s and draft_id=any(%s::uuid[])""",
+                (household, list(ids))).fetchall()
+            previous = {p["draft_id"]: p for p in saved}
+            if ids - previous.keys() - {e["draft_id"] for e in entries}:
+                raise ValueError("incomplete_batch")
+            result = []
+            for entry in entries:
+                prior = previous.get(entry["draft_id"])
+                if prior:
+                    if prior["member_id"] != str(member_id) or prior["fields"] != entry["fields"]:
+                        raise ValueError("draft_already_saved_with_different_values")
+                    result.append(dict(prior, nickname=member["nickname"], replayed=True))
+                    continue
+                row = db.execute("""insert into housemed.prescriptions(household_id,member_id,draft_id,fields,normalization)
+                    values(%s,%s,%s,%s,%s) returning id::text,draft_id::text,member_id::text,fields,normalization""",
+                    (household, str(member_id), entry["draft_id"], Jsonb(entry["fields"]), Jsonb(entry["normalization"]))).fetchone()
+                result.append(dict(row, nickname=member["nickname"], replayed=False))
+            return result

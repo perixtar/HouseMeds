@@ -3,11 +3,13 @@ import {prototypeDeals, money} from './deals.js';
 // PR #4 mobile UI: all persistence goes through the independent HTTP API.
 const $ = selector => document.querySelector(selector);
 const $$ = selector => document.querySelectorAll(selector);
-const state = {members: [], prescriptions: [], selected: '', draft: null, drafts: [], member: '', photo: null, busy: false};
+const state = {members: [], prescriptions: [], selected: '', draft: null, drafts: [], member: '', photo: null, busy: false, edits: {}, pendingAction: null};
 const fields = {medication: 'medicineName', strength: 'strength', form: 'medicineType', directions: 'dosage', quantity: 'quantity', refills: 'refills', prescriber: 'prescriber', pharmacy: 'pharmacy'};
 const draftKey = 'housemed_mobile_draft_id';
+const contextKey = 'housemed_intake_context';
 let lastRequest, manualRequestId, preview, progressTimer;
 let deals = [], selectedDeal;
+let memberRequest;
 function el(tag, text, className) {
   const node = document.createElement(tag); if (text) node.textContent = text; if (className) node.className = className; return node;
 }
@@ -89,7 +91,7 @@ function setBusy(value, title = 'Loading your medicines…', detail = 'Please wa
     $('#progressTitle').textContent = title; $('#progressDetail').textContent = detail;
     progressTimer = setTimeout(() => { $('#progressDetail').textContent = 'Still working. You don’t need to send it again.'; }, 15000);
   }
-  $$('#chatForm button, #chatForm input, #medicineForm input, #medicineForm textarea, #medicineForm select, #saveMedicine, #photoInput, #removePhoto, #chatActions button, #starterChoices button').forEach(n => n.disabled = value);
+  $$('#memberForm button, #memberForm input, #chatForm button, #chatForm input, #medicineForm input, #medicineForm textarea, #medicineForm select, #medicineForm button, #photoInput, #removePhoto, #chatActions button, #starterChoices button').forEach(n => n.disabled = value);
   $('#membersNext').disabled = value || !state.members.length;
 }
 async function request(body) {
@@ -103,9 +105,34 @@ function renderMemberSelect() {
   for (const m of state.members) $('#reviewMember').add(new Option(m.nickname, m.id));
   $('#reviewMember').value = state.member;
 }
+function persistContext() {
+  if (state.draft) sessionStorage.setItem(contextKey, JSON.stringify({draft_id: state.draft.id, member: state.member, pendingAction: state.pendingAction, edits: state.edits}));
+  else sessionStorage.removeItem(contextKey);
+}
+function reviewedFields() {
+  return {...Object.fromEntries(Object.entries(fields).map(([key, id]) => [key, $('#' + id).value.trim()])), warnings: state.draft?.fields.warnings ?? []};
+}
+function captureEdits() {
+  if (state.draft) { state.edits[state.draft.id] = reviewedFields(); persistContext(); }
+}
+function reviewedDrafts() {
+  return state.drafts.filter(d => state.edits[d.id]).map(d => ({draft_id: d.id, fields: state.edits[d.id]}));
+}
+function renderBatchSave() {
+  const count = state.drafts.length;
+  $('#batchSave').hidden = count < 2;
+  $('#batchTitle').textContent = `${count} medicines ready to save`;
+  $('#batchMedicines').replaceChildren(...state.drafts.map(d => {
+    const f = state.edits[d.id] ?? d.fields;
+    return el('li', `${f.medication} ${f.strength}${f.warnings?.length ? ' · check flagged details' : ''}`.trim());
+  }));
+  $('#saveAllMedicines').textContent = `Save all ${count} medicines${state.member ? ` for ${memberName(state.member)}` : ''}`;
+  $('#batchStatus').textContent = state.member ? '' : 'Choose who this list is for above.';
+  $('#saveMedicine').textContent = count > 1 ? 'Save this medicine only' : 'Save prescription';
+}
 function showDraft(draft) {
   state.draft = draft; sessionStorage.setItem(draftKey, draft.id);
-  for (const [key, id] of Object.entries(fields)) $('#' + id).value = draft.fields[key] ?? '';
+  for (const [key, id] of Object.entries(fields)) $('#' + id).value = (state.edits[draft.id] ?? draft.fields)[key] ?? '';
   renderMemberSelect(); $('#draftChoiceLabel').hidden = state.drafts.length < 2;
   $('#draftChoice').replaceChildren();
   for (const d of state.drafts) $('#draftChoice').add(new Option(`${d.fields.medication} ${d.fields.strength}`.trim(), d.id));
@@ -114,6 +141,7 @@ function showDraft(draft) {
   $('#identity').textContent = n.status === 'verified' ? `RxNorm identity: ${n.name}` : 'Medication identity is unverified. The original label text is preserved.';
   $('#reviewWarnings').replaceChildren(...(draft.fields.warnings ?? []).map(w => el('li', w)));
   $('#reviewStatus').textContent = '';
+  renderBatchSave(); persistContext();
 }
 function chatActions() {
   $('#chatActions').replaceChildren();
@@ -123,6 +151,8 @@ function chatActions() {
   }
   const review = el('button', `Review prescription${state.drafts.length > 1 ? ` (${state.drafts.length} medicines)` : ''} →`, 'starter');
   review.type = 'button'; review.onclick = () => openModal('#medicineModal'); $('#chatActions').append(review);
+  const save = el('button', `Save all ${state.drafts.length} medicines${state.member ? ` for ${memberName(state.member)}` : ''}`, 'starter');
+  save.type = 'button'; save.onclick = () => saveBatch(false); $('#chatActions').append(save);
 }
 function apply(result, speak = true) {
   if (result.members) state.members = result.members;
@@ -130,9 +160,22 @@ function apply(result, speak = true) {
   if (!state.members.some(m => m.id === state.selected)) state.selected = state.members[0]?.id ?? '';
   if (result.household_name) $('#householdName').textContent = result.household_name;
   if (result.status === 'needs_member') state.member = '';
-  if (result.selected_member_id) state.member = result.selected_member_id;
+  if ('selected_member_id' in result) state.member = result.selected_member_id ?? '';
+  if ('pending_action' in result) state.pendingAction = result.pending_action;
   if (result.drafts) state.drafts = result.drafts;
   if (result.draft) showDraft(result.draft);
+  if (result.status === 'saved_all') {
+    state.selected = result.selected_member_id ?? state.selected;
+    state.draft = null; state.drafts = []; state.edits = {}; state.pendingAction = null;
+    sessionStorage.removeItem(draftKey); closeModals(); go('meds'); toast(result.message);
+  } else if (result.status === 'saved' && result.saved_draft_id) {
+    state.selected = result.selected_member_id ?? state.selected;
+    delete state.edits[result.saved_draft_id];
+    state.drafts = state.drafts.filter(d => d.id !== result.saved_draft_id);
+    state.draft = null; sessionStorage.removeItem(draftKey);
+    if (state.drafts.length) showDraft(state.drafts[0]);
+  }
+  persistContext();
   if (speak && result.message) message(result.message);
   render(); chatActions();
 }
@@ -143,7 +186,8 @@ function removePhoto() {
 }
 async function sendMessage(text) {
   if (state.busy || (!text && !state.photo)) return;
-  const body = {action: 'chat', request_id: crypto.randomUUID(), message: text, ...(state.photo ? {image: state.photo} : state.draft ? {draft_id: state.draft.id} : {})};
+  captureEdits();
+  const body = {action: 'chat', request_id: crypto.randomUUID(), message: text, ...(state.member ? {member_id: state.member} : {}), ...(state.photo ? {image: state.photo} : state.draft ? {draft_id: state.draft.id, fields: reviewedFields(), pending_action: state.pendingAction, reviewed_drafts: reviewedDrafts()} : {})};
   const signature = JSON.stringify({...body, request_id: ''});
   if (lastRequest?.signature === signature) body.request_id = lastRequest.id;
   lastRequest = {signature, id: body.request_id};
@@ -163,13 +207,29 @@ async function sendMessage(text) {
   try {
     const result = await request(body);
     if (photoStatus) photoStatus.textContent = '✓ Photo received';
+    if (photo) { state.edits = {}; state.pendingAction = null; }
     apply(result); $('#chatText').value = ''; removePhoto(); lastRequest = null; $('#starterChoices').replaceChildren();
-    $('#chatStatus').textContent = state.draft ? 'Review the extracted details before saving.' : '';
+    $('#chatStatus').textContent = state.pendingAction ? 'Choose a member to save the whole list.' : state.draft ? 'Review the details, or ask me to save all.' : '';
   } catch (e) {
     if (photoStatus) { photoStatus.textContent = 'Couldn’t finish · photo kept for retry'; $('#attachment').hidden = false; }
     $('#chatStatus').textContent = `${e.message} Try sending again.`;
   } finally { setBusy(false); }
 }
+$('#memberForm').onsubmit = async event => {
+  event.preventDefault(); if (state.busy) return;
+  const nickname = $('#memberName').value.trim();
+  if (!nickname) { $('#memberStatus').textContent = 'Enter a name or nickname.'; $('#memberName').focus(); return; }
+  if (memberRequest?.nickname !== nickname) memberRequest = {nickname, id: crypto.randomUUID()};
+  setBusy(true, 'Adding household member…'); $('#memberForm').setAttribute('aria-busy', 'true');
+  $('#addMember').textContent = '…'; $('#memberStatus').textContent = `Adding ${nickname}…`;
+  try {
+    const result = await request({action: 'create_member', request_id: memberRequest.id, nickname});
+    apply(result, false); renderMemberSelect();
+    $('#memberName').value = ''; memberRequest = null; $('#memberStatus').textContent = result.message;
+    $('#houseStatus').textContent = 'Choose a household member.';
+  } catch (e) { $('#memberStatus').textContent = `${e.message} Try adding this member again.`; }
+  finally { setBusy(false); $('#memberForm').setAttribute('aria-busy', 'false'); $('#addMember').textContent = '+'; }
+};
 for (const id of ['#memberList', '#personChoices']) $(id).onclick = event => {
   const button = event.target.closest('[data-person]'); if (!button) return;
   state.selected = button.dataset.person; renderMeds(); go('meds');
@@ -183,7 +243,10 @@ $('#selectDeal').onclick = () => {
   $('#selectDeal').textContent = '✓ Selected for this preview';
   $('#dealSelection').textContent = `${selectedDeal.best.pharmacy} selected for ${selectedDeal.name}. Demo selection only; no order or prescription transfer was sent.`;
 };
-for (const id of ['#openAssistant', '#helpButton', '#houseAssistant']) $(id).onclick = () => openModal('#assistantModal');
+for (const id of ['#openAssistant', '#helpButton', '#houseAssistant']) $(id).onclick = () => {
+  if (id === '#openAssistant') { state.member = state.selected; renderMemberSelect(); renderBatchSave(); chatActions(); persistContext(); }
+  openModal('#assistantModal');
+};
 $$('.modal-close').forEach(b => b.onclick = closeModals);
 $$('.modal').forEach(m => m.onclick = e => { if (e.target === m) closeModals(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(); });
@@ -202,18 +265,34 @@ $('#photoInput').onchange = async () => {
     if (!$('#chatText').value) $('#chatText').value = 'Add this prescription'; $('#chatStatus').textContent = 'Photo ready to send.';
   } catch (e) { removePhoto(); $('#chatStatus').textContent = e.message; } finally { setBusy(false); }
 };
-$('#reviewMember').onchange = () => { state.member = $('#reviewMember').value; chatActions(); };
+$('#reviewMember').onchange = () => { state.member = $('#reviewMember').value; persistContext(); renderBatchSave(); chatActions(); };
+for (const id of Object.values(fields)) $('#' + id).oninput = () => { captureEdits(); renderBatchSave(); };
 $('#draftChoice').onchange = async () => {
+  captureEdits();
   setBusy(true, 'Loading prescription…'); $('#reviewStatus').textContent = 'Loading prescription…';
-  try { apply(await request({action: 'chat', request_id: crypto.randomUUID(), draft_id: $('#draftChoice').value, message: ''}), false); }
+  try { apply(await request({action: 'chat', request_id: crypto.randomUUID(), draft_id: $('#draftChoice').value, message: '', ...(state.member ? {member_id: state.member} : {}), pending_action: state.pendingAction}), false); }
   catch (e) { $('#reviewStatus').textContent = e.message; } finally { setBusy(false); }
 };
 $('#showMedicineForm').onclick = () => {
   if (state.busy) return;
-  state.draft = null; state.drafts = []; state.member = state.selected; manualRequestId = crypto.randomUUID();
+  state.draft = null; state.drafts = []; state.edits = {}; state.pendingAction = null; state.member = state.selected; manualRequestId = crypto.randomUUID();
   sessionStorage.removeItem(draftKey); $('#medicineForm').reset(); renderMemberSelect(); $('#draftChoiceLabel').hidden = true;
-  $('#identity').textContent = ''; $('#reviewWarnings').replaceChildren(); $('#reviewStatus').textContent = ''; openModal('#medicineModal');
+  persistContext(); renderBatchSave(); $('#identity').textContent = ''; $('#reviewWarnings').replaceChildren(); $('#reviewStatus').textContent = ''; openModal('#medicineModal');
 };
+async function saveBatch(fromForm = true) {
+  if (state.busy || !state.draft) return;
+  if (fromForm && !$('#medicineForm').reportValidity()) return;
+  captureEdits();
+  setBusy(true, `Saving ${state.drafts.length} medicines…`, 'Saving the whole list together. You don’t need to send it again.');
+  $('#reviewStatus').textContent = $('#batchStatus').textContent = 'Saving all medicines…';
+  try {
+    const result = await request({action: 'confirm_all', request_id: crypto.randomUUID(), draft_id: state.draft.id,
+      ...(state.member ? {member_id: state.member} : {}), reviewed_drafts: reviewedDrafts()});
+    apply(result); $('#reviewStatus').textContent = $('#batchStatus').textContent = result.message;
+  } catch (e) { $('#reviewStatus').textContent = $('#batchStatus').textContent = $('#chatStatus').textContent = `${e.message} You can safely retry Save all.`; }
+  finally { setBusy(false); }
+}
+$('#saveAllMedicines').onclick = () => saveBatch(true);
 $('#medicineForm').onsubmit = async event => {
   event.preventDefault(); if (state.busy) return;
   const member = $('#reviewMember').value;
@@ -228,20 +307,26 @@ $('#medicineForm').onsubmit = async event => {
     const savedDraft = state.draft.id;
     const result = await request({action: 'confirm', request_id: crypto.randomUUID(), draft_id: savedDraft, member_id: member, fields: reviewed});
     apply(result); state.selected = member; state.member = member;
-    state.drafts = state.drafts.filter(d => d.id !== savedDraft); state.draft = null; sessionStorage.removeItem(draftKey);
     if (state.drafts.length) { showDraft(state.drafts[0]); $('#reviewStatus').textContent = `Saved. ${state.drafts.length} medicine(s) left to review.`; }
     else { closeModals(); go('meds'); }
     render(); chatActions(); toast(`Saved for ${memberName(member)}.`);
   } catch (e) { $('#reviewStatus').textContent = e.message; } finally { setBusy(false); }
 };
-message('Add a prescription photo or type its details. I’ll ask who it’s for, then you can review and save.');
+message('Add a prescription photo or type its details. Choose who it’s for, then review individual medicines or ask me to save the whole list.');
 const starter = el('button', 'Add medicine from a picture →', 'starter'); starter.type = 'button'; starter.onclick = () => $('#photoInput').click(); $('#starterChoices').append(starter);
 async function start() {
+  const storedContext = sessionStorage.getItem(contextKey);
   setBusy(true);
   try {
-    apply(await request(), false); $('#houseStatus').textContent = state.members.length ? 'Choose a household member.' : 'No household members are configured.';
+    apply(await request(), false); $('#houseStatus').textContent = state.members.length ? 'Choose a household member.' : 'Add your first household member.';
     const id = sessionStorage.getItem(draftKey);
-    if (id) apply(await request({action: 'chat', request_id: crypto.randomUUID(), draft_id: id, message: ''}), false);
+    if (id) {
+      try {
+        const context = JSON.parse(storedContext || '{}');
+        if (context.draft_id === id) { state.member = context.member ?? ''; state.pendingAction = context.pendingAction ?? null; state.edits = context.edits ?? {}; }
+      } catch { sessionStorage.removeItem(contextKey); }
+      apply(await request({action: 'chat', request_id: crypto.randomUUID(), draft_id: id, message: '', ...(state.member ? {member_id: state.member} : {}), pending_action: state.pendingAction}), false);
+    }
   } catch (e) { $('#houseStatus').textContent = e.message; $('#chatStatus').textContent = e.message; }
   finally { setBusy(false); }
 }

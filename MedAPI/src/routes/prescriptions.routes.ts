@@ -1,23 +1,72 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { makeIdempotent, IdempotencyConfig } from '@aws-lambda-powertools/idempotency';
-import { DynamoDBPersistenceLayer } from '@aws-lambda-powertools/idempotency/dynamodb';
 import { usecases } from '../composition';
 import { requireHousehold } from '../common/auth';
-import { isMockTarget, requireEnv } from '../config/env';
+import { withIdempotency } from '../common/idempotency';
 import { errorResponseSchema, bearerAuthSecurity } from '../common/http-schemas';
-import {
-  medicationForms,
-  quantityUnits,
-  type PrescriptionHousehold,
-} from '../domain/types';
+import type { PrescriptionHousehold } from '../domain/types';
+
+const medicineFormSchema = z.enum([
+  'tablet',
+  'capsule',
+  'liquid',
+  'cream',
+  'ointment',
+  'gel',
+  'solution',
+  'suspension',
+  'inhaler',
+  'spray',
+  'drops',
+  'patch',
+  'injection',
+  'suppository',
+  'powder',
+  'lozenge',
+]);
+
+const strengthUnitSchema = z.enum([
+  'mcg',
+  'mg',
+  'g',
+  'mL',
+  'L',
+  'units',
+  'IU',
+  'mEq',
+  '%',
+]);
+
+const dosageUnitSchema = z.enum([
+  'tablet',
+  'capsule',
+  'mL',
+  'g',
+  'patch',
+  'inhaler',
+  'vial',
+  'syringe',
+  'pen',
+  'ampule',
+  'suppository',
+  'lozenge',
+  'dose',
+]);
 
 const medicineInputSchema = z.object({
   id: z.string().uuid().optional(),
-  medicationId: z.string().regex(/^[1-9][0-9]{0,17}$/),
+  name: z.string().min(1),
+  genericName: z.string().min(1),
+  form: medicineFormSchema,
+  strength: z.number().positive(),
+  strengthUnit: strengthUnitSchema,
+  dosageUnit: dosageUnitSchema,
   quantity: z.number().int().positive(),
-  quantityUnit: z.enum(quantityUnits),
+  frequency: z.string().min(1),
+  prescriberName: z.string().min(1),
+  refills: z.number().int().nonnegative(),
+  medId: z.string().min(1),
 });
 
 const memberInputSchema = z.object({
@@ -39,32 +88,19 @@ const listQuerySchema = z.object({
     .transform((v) => v === 'true'),
 });
 
-const medicationSearchQuerySchema = z.object({ q: z.string().min(2).max(120) });
-const medicationSearchResponseSchema = z.object({
-  items: z.array(
-    z.object({
-      medicationId: z.string(),
-      name: z.string(),
-      genericName: z.string(),
-      strength: z.string(),
-      form: z.enum(medicationForms),
-      route: z.string(),
-      releaseType: z.string(),
-      rxnormRxcui: z.string().nullable(),
-    }),
-  ),
-});
-
 const medicineResponseSchema = z.object({
   id: z.string(),
-  medicationId: z.string().nullable(),
-  normalizationStatus: z.enum(['verified', 'needs_review']),
   name: z.string(),
   genericName: z.string(),
-  strength: z.string().nullable(),
-  form: z.enum(medicationForms).nullable(),
+  form: medicineFormSchema,
+  strength: z.number(),
+  strengthUnit: strengthUnitSchema,
+  dosageUnit: dosageUnitSchema,
   quantity: z.number(),
-  quantityUnit: z.enum(quantityUnits).nullable(),
+  frequency: z.string(),
+  prescriberName: z.string(),
+  refills: z.number(),
+  medId: z.string(),
   unitPrice: z.number(),
   total: z.number(),
   deleted: z.boolean(),
@@ -76,6 +112,21 @@ const memberResponseSchema = z.object({
   medicines: z.array(medicineResponseSchema),
 });
 
+// Mirrors FetchPriceQuote — what fetchPrice + comparePrices returned.
+const priceQuoteResponseSchema = z.object({
+  medicineId: z.string(),
+  name: z.string(),
+  form: medicineFormSchema,
+  dosageUnit: dosageUnitSchema,
+  quantity: z.number(),
+  strength: z.number(),
+  strengthUnit: strengthUnitSchema,
+  rxNormId: z.string(),
+  medId: z.string(),
+  price: z.number(),
+  pharmacy: z.string(),
+});
+
 const prescriptionResponseSchema = z.object({
   id: z.string(),
   householdId: z.string(),
@@ -84,10 +135,8 @@ const prescriptionResponseSchema = z.object({
   totalPrice: z.number(),
   deleted: z.boolean(),
   members: z.array(memberResponseSchema),
-  priceComparisonStatus: z.enum(['pending', 'ready', 'unavailable']),
-  priceComparisons: z.array(
-    z.object({ medicineId: z.string(), source: z.string(), price: z.number() }),
-  ),
+  priceComparisonStatus: z.enum(['ready', 'unavailable']),
+  priceComparisons: z.array(priceQuoteResponseSchema),
 });
 
 const summaryResponseSchema = z.array(
@@ -109,54 +158,12 @@ function toResponse(p: PrescriptionHousehold) {
   };
 }
 
-// Keyed off the Idempotency-Key header, not the body, so retries dedupe.
-// Skipped under TARGET_SOURCE=mock — DynamoDB is an aws-only concern.
-const idempotencyConfig = new IdempotencyConfig({ eventKeyJmesPath: 'idempotencyKey' });
-
-function idempotencyPersistenceStore(): DynamoDBPersistenceLayer {
-  return new DynamoDBPersistenceLayer({
-    tableName: requireEnv('IDEMPOTENCY_TABLE_NAME'),
-  });
-}
-
-function withIdempotency<TPayload extends { idempotencyKey: string }, TResult>(
-  fn: (payload: TPayload) => Promise<TResult>,
-): (payload: TPayload) => Promise<TResult> {
-  if (isMockTarget()) return fn;
-  return makeIdempotent(fn, {
-    persistenceStore: idempotencyPersistenceStore(),
-    config: idempotencyConfig,
-  });
-}
-
 export function registerPrescriptionRoutes(app: FastifyInstance): void {
   // Scoped child context so the auth preHandler doesn't apply app-wide.
   void app.register(async (scoped) => {
     const server = scoped.withTypeProvider<ZodTypeProvider>();
 
     server.addHook('preHandler', requireHousehold);
-
-    server.get(
-      '/medications',
-      {
-        schema: {
-          tags: ['Prescriptions'],
-          summary: 'Search verified canonical medications',
-          description:
-            'Returns canonical pricing medication IDs that can be used in new prescription lines. Free text is search input only; the client must submit the selected medicationId.',
-          security: bearerAuthSecurity,
-          querystring: medicationSearchQuerySchema,
-          response: {
-            200: medicationSearchResponseSchema,
-            401: errorResponseSchema,
-            503: errorResponseSchema,
-          },
-        },
-      },
-      async (request) => ({
-        items: await usecases.searchMedications({ query: request.query.q }),
-      }),
-    );
 
     server.post(
       '/prescriptions',
@@ -165,11 +172,12 @@ export function registerPrescriptionRoutes(app: FastifyInstance): void {
           tags: ['Prescriptions'],
           summary: 'Add a new prescription',
           description:
-            'Fetches a fresh price for every medicine before saving — a pricing ' +
-            'failure returns 503 with nothing saved. Enqueues an async ' +
-            "getPriceComparison job on success; `priceComparisonStatus` starts `'pending'`. " +
-            'Requires an `Idempotency-Key` header so a client/API Gateway retry ' +
-            "can't create a duplicate submission.",
+            'Fetches a fresh price for every medicine (fetchPrice) and ranks the ' +
+            'offers (comparePrices) before saving — a fetchPrice failure returns ' +
+            "503 with nothing saved. `priceComparisons` mirrors fetchPrice's " +
+            'response shape: one entry per pharmacy offer. Requires an ' +
+            "`Idempotency-Key` header so a client/API Gateway retry can't create " +
+            'a duplicate submission.',
           security: bearerAuthSecurity,
           body: savePrescriptionBodySchema,
           response: {
@@ -260,10 +268,10 @@ export function registerPrescriptionRoutes(app: FastifyInstance): void {
           tags: ['Prescriptions'],
           summary: 'Replace a prescription',
           description:
-            'Same pricing-refresh behavior as POST /prescriptions. `totalPrice` is ' +
-            'always recomputed server-side from non-deleted medicine lines only — a ' +
-            'client-submitted total is never trusted. Requires an `Idempotency-Key` ' +
-            'header.',
+            'Same fetchPrice/comparePrices refresh as POST /prescriptions. ' +
+            '`totalPrice` is always recomputed server-side from non-deleted ' +
+            'medicine lines only — a client-submitted total is never trusted. ' +
+            'Requires an `Idempotency-Key` header.',
           security: bearerAuthSecurity,
           params: idParamsSchema,
           body: savePrescriptionBodySchema,

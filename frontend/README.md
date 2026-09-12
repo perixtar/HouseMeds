@@ -19,15 +19,15 @@ The frontend uses ordinary `fetch`, bearer authentication, and no cookies. All f
 
 ## Verify the user flow
 
-1. Open **Add a prescription with AI**.
+1. Add a name or nickname on **Who’s in your house?**, then open **Add a prescription with AI**.
 2. Attach a photo from `data/` and send **Add this prescription**.
 3. Reply with a household member's nickname or tap their choice.
 4. Open **Review prescription**; check the populated form against the photo.
-5. **Save prescription**. The household list and counts refresh from the API response.
+5. Choose **Save all N medicines** to save the photo batch, or **Save this medicine only**. You can also type **save all medicine** in chat; if no member is selected, choose one when asked and the agent saves the list. The household list and counts refresh from the API response.
 6. Reload and select the member: the saved record is read back from Supabase.
 7. Tap **Get your deals** to open the prototype household savings screen. Select a medicine, compare the example offers, and use **Select this deal** to preview selection. Back navigation returns to deals, medicines, and the household picker.
 
-PNG, JPEG, WebP, and HEIC are supported. HEIC conversion is bundled into the frontend and runs locally. For multi-medicine photographs, review and save each medicine individually. Remaining drafts are restored for the current tab. Manual entry uses the same API and persistence without model extraction.
+PNG, JPEG, WebP, and HEIC are supported. HEIC conversion is bundled into the frontend and runs locally. For multi-medicine photographs, use Save all or save each medicine individually. Edits survive switching medicines. Remaining drafts, member selection, and a pending save-all request are restored for the current tab. Free-text follow-ups use the model with the active intake context; they no longer fall back to an exact-name-only response. Manual entry uses the same API and persistence without model extraction.
 
 ## Configuration and build
 
@@ -41,7 +41,7 @@ npm run preview
 
 Deploy `dist/` to your frontend host. Vite includes `VITE_` values in the build: the token is absent from the interface but can be inspected in browser assets and requests. Use this shared token for the trusted team development environment; public multi-user deployments need user authentication.
 
-The supplied API token currently authorizes one shared development household. Members are read from the database; member administration is outside this prescription-intake flow. The main app uses the household prototype’s deals screens with saved AWS prescriptions. `deals.js` supplies clearly labeled example prices; no live quote, order, or prescription transfer is made. The AWS chat, image review, and prescription persistence remain connected to the shared backend.
+Each browser profile stores its own random household key in localStorage. Normal tabs on the same frontend origin share that household; Chrome Incognito starts with an empty household and keeps it only for that private browsing session. Reloads preserve members, while clearing site data loses the browser key. There is no account recovery or cross-device household sharing yet. The former shared development household remains in the database, but new browser households start empty. Add members by name; duplicates reuse the existing member. The main app uses the household prototype’s deals screens with saved AWS prescriptions. `deals.js` supplies clearly labeled example prices; no live quote, order, or prescription transfer is made. The AWS chat, image review, and prescription persistence remain connected to the shared backend.
 
 `api.js` also exports `callDealsApi()` for the new single `GET /v1/deals` endpoint. It returns saved-medicine fields, eligible database offers, and clearly labeled Exa research candidates from additional pharmacies. The existing screenshot prototype is not yet switched to this endpoint; its example prices remain visibly marked as mock until the AgentCore/API deployment and UI hookup are complete.
 

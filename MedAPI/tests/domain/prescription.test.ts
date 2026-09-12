@@ -11,14 +11,17 @@ import type { Medicine, Member, PrescriptionHousehold } from '../../src/domain/t
 function medicine(overrides: Partial<Medicine> = {}): Medicine {
   return {
     id: 'med-1',
-    normalizationStatus: 'verified',
-    medicationId: '1',
     name: 'Amoxicillin',
     genericName: 'amoxicillin',
-    strength: '500 mg',
     form: 'capsule',
+    strength: 500,
+    strengthUnit: 'mg',
+    dosageUnit: 'capsule',
     quantity: 2,
-    quantityUnit: 'capsule',
+    frequency: 'twice daily',
+    prescriberName: 'Dr. Smith',
+    refills: 1,
+    medId: 'med-1',
     unitPrice: 10,
     total: 20,
     deleted: false,
@@ -69,7 +72,7 @@ describe('softDeletePrescription', () => {
       totalPrice: 20,
       deleted: false,
       members: [member()],
-      priceComparisonStatus: 'pending',
+      priceComparisonStatus: 'ready',
       priceComparisons: [],
     } as PrescriptionHousehold;
 

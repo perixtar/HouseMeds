@@ -4,12 +4,14 @@ import {randomUUID} from 'node:crypto';
 import {buildPrescriptionApi} from '../src/prescription-api.js';
 
 const token = 'test-only-token-with-at-least-32-characters';
+const householdSecret = 'server-only-test-secret-with-at-least-32-characters';
+const householdKey = 'a'.repeat(64);
 function setup() {
-  const seen: any[] = [], householdId = randomUUID();
-  const app = buildPrescriptionApi({apiToken: token, householdId, invoke: async (payload, session) => {
+  const seen: any[] = [];
+  const app = buildPrescriptionApi({apiToken: token, householdSecret, invoke: async (payload, session) => {
     seen.push({payload, session}); return {status: 'ready', provider: 'aws-agentcore', members: [], prescriptions: []};
   }});
-  return {app, seen, householdId};
+  return {app, seen};
 }
 
 test('preflight works for every frontend without authentication or cookies', async () => {
@@ -27,7 +29,7 @@ test('preflight works for every frontend without authentication or cookies', asy
 });
 
 test('any origin can invoke with a token, while CORS does not bypass authorization', async () => {
-  const {app, seen, householdId} = setup();
+  const {app, seen} = setup();
   try {
     for (const authorization of [undefined, 'Bearer wrong', 'Basic '+token]) {
       const r = await app.inject({method: 'GET', url: '/v1/prescription-chat/state', headers: {origin: 'https://any-frontend.example', ...(authorization ? {authorization} : {})}});
@@ -35,16 +37,16 @@ test('any origin can invoke with a token, while CORS does not bypass authorizati
     }
     assert.equal(seen.length, 0);
     const session = randomUUID();
-    const r = await app.inject({method: 'GET', url: '/v1/prescription-chat/state', headers: {host: 'shared-api.example', origin: 'https://any-frontend.example', authorization: 'Bearer '+token, 'x-housemed-session-id': session}});
+    const r = await app.inject({method: 'GET', url: '/v1/prescription-chat/state', headers: {host: 'shared-api.example', origin: 'https://any-frontend.example', 'x-housemed-household-key':householdKey, authorization: 'Bearer '+token, 'x-housemed-session-id': session}});
     assert.equal(r.statusCode, 200); assert.equal(r.headers['access-control-allow-origin'], '*');
     assert.equal(r.headers['x-housemed-session-id'], session); assert.equal(seen[0].session, session);
-    assert.equal(seen[0].payload.household_id, householdId);
+    assert.match(seen[0].payload.household_id,/^[a-f0-9-]{36}$/);
   } finally { await app.close(); }
 });
 
 test('API rejects tenant overrides, invalid images and malformed session IDs before AWS calls', async () => {
   const {app, seen} = setup();
-  const headers = {authorization: 'Bearer '+token, origin: 'https://any.example'};
+  const headers = {'x-housemed-household-key':householdKey, authorization: 'Bearer '+token, origin: 'https://any.example'};
   try {
     for (const payload of [
       {action: 'chat', request_id: randomUUID(), household_id: randomUUID()},
@@ -61,7 +63,7 @@ test('manual preparation and confirmation preserve client request IDs and review
   const fields = {medication: 'Zoloft', strength: '100 mg', form: '', directions: '', quantity: '', refills: '', prescriber: '', pharmacy: '', warnings: []};
   try {
     for (const body of [{action: 'prepare', request_id: randomUUID(), fields}, {action: 'confirm', request_id: randomUUID(), draft_id: randomUUID(), member_id: randomUUID(), fields}]) {
-      const r = await app.inject({method: 'POST', url: '/v1/prescription-chat', headers: {authorization: 'Bearer '+token}, payload: body});
+      const r = await app.inject({method: 'POST', url: '/v1/prescription-chat', headers: {'x-housemed-household-key':householdKey, authorization: 'Bearer '+token}, payload: body});
       assert.equal(r.statusCode, 200); assert.equal(seen.at(-1).payload.request_id, body.request_id);
       assert.deepEqual(seen.at(-1).payload.fields, fields);
     }
@@ -69,9 +71,9 @@ test('manual preparation and confirmation preserve client request IDs and review
 });
 
 test('runtime failures are browser-readable and do not leak internal exceptions', async () => {
-  const app = buildPrescriptionApi({apiToken: token, householdId: randomUUID(), invoke: async () => { throw Error('PRIVATE_UPSTREAM_DETAIL'); }});
+  const app = buildPrescriptionApi({apiToken: token, householdSecret, invoke: async () => { throw Error('PRIVATE_UPSTREAM_DETAIL'); }});
   try {
-    const r = await app.inject({url: '/v1/prescription-chat/state', headers: {origin: 'https://new-frontend.example', authorization: 'Bearer '+token}});
+    const r = await app.inject({url: '/v1/prescription-chat/state', headers: {origin: 'https://new-frontend.example', 'x-housemed-household-key':householdKey, authorization: 'Bearer '+token}});
     assert.equal(r.statusCode, 502); assert.equal(r.headers['access-control-allow-origin'], '*');
     assert.equal(r.json().error, 'agent_unavailable'); assert.ok(!r.body.includes('PRIVATE_UPSTREAM_DETAIL'));
   } finally { await app.close(); }
@@ -80,30 +82,31 @@ test('runtime failures are browser-readable and do not leak internal exceptions'
 test('the authenticated OpenAPI spec describes the frontend request contract', async () => {
   const {app} = setup();
   try {
-    const r = await app.inject({url: '/openapi.json', headers: {authorization: 'Bearer '+token}});
+    const r = await app.inject({url: '/openapi.json', headers: {'x-housemed-household-key':householdKey, authorization: 'Bearer '+token}});
     assert.equal(r.statusCode, 200);
     const spec = r.json(); assert.equal(spec.openapi, '3.1.0');
     assert.equal(spec.components.securitySchemes.bearerAuth.scheme, 'bearer');
-    assert.deepEqual(spec.components.schemas.PrescriptionRequest.properties.action.enum, ['chat','confirm','prepare']);
+    assert.deepEqual(spec.components.schemas.PrescriptionRequest.properties.action.enum, ['chat','confirm','confirm_all','prepare','create_member']);
     assert.ok(spec.paths['/v1/deals'].get);
   } finally { await app.close(); }
 });
 
 test('one authenticated deals endpoint delegates aggregation to AgentCore', async () => {
-  const {app, seen, householdId} = setup();
+  const {app, seen} = setup();
   try {
     assert.equal((await app.inject({url: '/v1/deals'})).statusCode, 401);
-    const r = await app.inject({url: '/v1/deals', headers: {authorization: 'Bearer '+token}});
+    assert.equal((await app.inject({url: '/v1/deals', headers: {authorization: 'Bearer '+token}})).statusCode, 400);
+    const r = await app.inject({url: '/v1/deals', headers: {authorization: 'Bearer '+token, 'x-housemed-household-key': householdKey}});
     assert.equal(r.statusCode, 200);
     assert.equal(seen.length, 1);
     assert.equal(seen[0].payload.action, 'deals');
-    assert.equal(seen[0].payload.household_id, householdId);
+    assert.match(seen[0].payload.household_id,/^[a-f0-9-]{36}$/);
     assert.ok(!('household_id' in r.json()));
   } finally { await app.close(); }
 });
 
 test('deals response preserves source labels and nullable research prices', async () => {
-  const app = buildPrescriptionApi({apiToken: token, householdId: randomUUID(), invoke: async payload => {
+  const app = buildPrescriptionApi({apiToken: token, householdSecret, invoke: async payload => {
     assert.equal(payload.action, 'deals');
     return {status: 'ready', pricing_status: 'available', deals: [{prescription_id: randomUUID(),
       member_name: 'Household member', medicine_name: 'Example medicine', strength: '10 mg', form: 'tablet',
@@ -112,9 +115,53 @@ test('deals response preserves source labels and nullable research prices', asyn
         verification_status: 'research_only'}]}]};
   }});
   try {
-    const r = await app.inject({url: '/v1/deals', headers: {authorization: 'Bearer '+token}});
+    const r = await app.inject({url: '/v1/deals', headers: {authorization: 'Bearer '+token, 'x-housemed-household-key': householdKey}});
     assert.equal(r.statusCode, 200);
     assert.equal(r.json().deals[0].research_candidates[0].price_cents, null);
     assert.equal(r.json().deals[0].research_candidates[0].verification_status, 'research_only');
   } finally { await app.close(); }
+});
+
+test('member creation validates names and binds the household before invoking AWS', async () => {
+  const {app,seen}=setup(); const headers={'x-housemed-household-key':householdKey,authorization:'Bearer '+token};
+  try {
+    for (const nickname of [undefined,'','   ','x'.repeat(81)]) {
+      assert.equal((await app.inject({method:'POST',url:'/v1/prescription-chat',headers,payload:{action:'create_member',request_id:randomUUID(),nickname}})).statusCode,400);
+    }
+    assert.equal(seen.length,0);
+    const request_id=randomUUID();
+    assert.equal((await app.inject({method:'POST',url:'/v1/prescription-chat',headers,payload:{action:'create_member',request_id,nickname:' Mom '}})).statusCode,200);
+    assert.equal(seen[0].payload.nickname,'Mom'); assert.match(seen[0].payload.household_id,/^[a-f0-9-]{36}$/); assert.equal(seen[0].payload.request_id,request_id);
+  } finally {await app.close();}
+});
+
+test('browser households are isolated, stable across tabs, and cannot fall back to the shared list', async () => {
+  const {app,seen}=setup();
+  try {
+    for (const key of [undefined,'invalid']) {
+      const r=await app.inject({url:'/v1/prescription-chat/state',headers:{authorization:'Bearer '+token,...(key?{'x-housemed-household-key':key}:{})}});
+      assert.equal(r.statusCode,400);
+    }
+    assert.equal(seen.length,0);
+    for(const key of [householdKey,'b'.repeat(64),householdKey]) {
+      assert.equal((await app.inject({url:'/v1/prescription-chat/state',headers:{authorization:'Bearer '+token,'x-housemed-household-key':key,'x-housemed-session-id':randomUUID()}})).statusCode,200);
+    }
+    assert.equal(seen[0].payload.household_id,seen[2].payload.household_id);
+    assert.notEqual(seen[0].payload.household_id,seen[1].payload.household_id);
+  } finally {await app.close();}
+});
+
+test('batch confirmation passes reviewed edits and chat intent but rejects oversized batches', async () => {
+  const {app,seen}=setup();
+  const headers={'x-housemed-household-key':householdKey,authorization:'Bearer '+token};
+  const fields={medication:'Example',strength:'75 mcg',form:'',directions:'',quantity:'',refills:'',prescriber:'',pharmacy:'',warnings:[]};
+  const draft_id=randomUUID(),member_id=randomUUID();
+  try {
+    const payload={action:'confirm_all',request_id:randomUUID(),draft_id,member_id,reviewed_drafts:[{draft_id,fields}]};
+    assert.equal((await app.inject({method:'POST',url:'/v1/prescription-chat',headers,payload})).statusCode,200);
+    assert.deepEqual(seen[0].payload.reviewed_drafts,payload.reviewed_drafts);
+    assert.equal((await app.inject({method:'POST',url:'/v1/prescription-chat',headers,payload:{...payload,action:'chat',message:'Grandma',pending_action:'confirm_all'}})).statusCode,200);
+    assert.equal(seen[1].payload.pending_action,'confirm_all');
+    assert.equal((await app.inject({method:'POST',url:'/v1/prescription-chat',headers,payload:{...payload,reviewed_drafts:Array(41).fill({draft_id,fields})}})).statusCode,400);
+  } finally {await app.close();}
 });

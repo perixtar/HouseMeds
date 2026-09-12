@@ -12,7 +12,7 @@ interface SeedRow {
   createdAt?: string;
 }
 
-// In-memory store, seeded once from the fixture, instead of MongoDB Atlas.
+// In-memory store, seeded once from the fixture, instead of Supabase.
 export class MockHouseholdRepository implements HouseholdRepository {
   private readonly byId = new Map<string, Household>();
 
