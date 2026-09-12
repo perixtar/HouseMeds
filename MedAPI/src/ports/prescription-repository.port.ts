@@ -1,10 +1,6 @@
-import type {
-  PriceComparisonRecommendation,
-  PrescriptionHousehold,
-  PrescriptionSummary,
-} from '../domain/types';
+import type { PrescriptionHousehold, PrescriptionSummary } from '../domain/types';
 
-// Use-cases depend on this, never on the Mongo driver directly.
+// Use-cases depend on this, never on the Postgres driver directly.
 export interface PrescriptionRepository {
   create(prescription: Omit<PrescriptionHousehold, 'id'>): Promise<PrescriptionHousehold>;
 
@@ -20,12 +16,4 @@ export interface PrescriptionRepository {
   replace(prescription: PrescriptionHousehold): Promise<PrescriptionHousehold>;
 
   softDelete(id: string, householdId: string): Promise<boolean>;
-
-  /** Called by the getPriceComparison worker once recommendations are ready. */
-  savePriceComparisons(
-    id: string,
-    offers: PriceComparisonRecommendation[],
-  ): Promise<void>;
-
-  markPriceComparisonUnavailable(id: string): Promise<void>;
 }

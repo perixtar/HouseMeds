@@ -20,21 +20,17 @@
     "deploy:prod": "sls deploy --config serverless-prod.yml"
   },
   "dependencies": {
-    "@aws-lambda-powertools/idempotency": "^2.11.0",
     "@aws-lambda-powertools/logger": "^2.11.0",
     "@aws-lambda-powertools/parameters": "^2.11.0",
     "@aws-lambda-powertools/tracer": "^2.11.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.658.0",
-    "@aws-sdk/client-dynamodb": "^3.658.0",
-    "@aws-sdk/client-sqs": "^3.658.0",
     "@aws-sdk/client-ssm": "^3.1128.0",
-    "@aws-sdk/util-dynamodb": "^3.996.9",
     "@fastify/aws-lambda": "^4.1.0",
     "@fastify/swagger": "^8.15.0",
     "@fastify/swagger-ui": "^4.1.1",
     "fastify": "^4.28.1",
     "fastify-type-provider-zod": "^2.1.0",
-    "mongodb": "^6.9.0",
+    "postgres": "^3.4.4",
     "zod": "^3.23.8"
   },
   "devDependencies": {

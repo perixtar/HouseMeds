@@ -10,8 +10,6 @@ function fakeRepository(softDeleteResult: boolean): PrescriptionRepository {
     listByHousehold: vi.fn(),
     replace: vi.fn(),
     softDelete: vi.fn(async () => softDeleteResult),
-    savePriceComparisons: vi.fn(),
-    markPriceComparisonUnavailable: vi.fn(),
   };
 }
 

@@ -1,21 +1,34 @@
 import { randomUUID } from 'node:crypto';
 import type { PrescriptionRepository } from '../ports/prescription-repository.port';
-import type { PricingClient } from '../ports/pricing-client.port';
-import type { JobQueue } from '../ports/job-queue.port';
-import type { Member, PrescriptionHousehold, QuantityUnit } from '../domain/types';
+import type { FetchPriceClient } from '../ports/fetch-price.port';
+import type {
+  DosageUnit,
+  MedicineForm,
+  Member,
+  PrescriptionHousehold,
+  StrengthUnit,
+} from '../domain/types';
 import {
   computePrescriptionTotal,
   reconcileMembersOnUpdate,
 } from '../domain/prescription';
 import { NotFoundError } from '../errors/domain-errors';
-import { refreshPrices } from './add-prescription.usecase';
+import { priceMembers } from './add-prescription.usecase';
 
 export interface UpdatePrescriptionMedicineInput {
   /** Omit to add a new medicine line; include an existing id to update it. */
   id?: string;
-  medicationId: string;
+  name: string;
+  genericName: string;
+  form: MedicineForm;
+  strength: number;
+  strengthUnit: StrengthUnit;
+  dosageUnit: DosageUnit;
   quantity: number;
-  quantityUnit: QuantityUnit;
+  frequency: string;
+  prescriberName: string;
+  refills: number;
+  medId: string;
 }
 
 export interface UpdatePrescriptionMemberInput {
@@ -33,8 +46,7 @@ export interface UpdatePrescriptionInput {
 
 export function makeUpdatePrescription(
   prescriptionRepository: PrescriptionRepository,
-  pricingClient: PricingClient,
-  jobQueue: JobQueue,
+  fetchPriceClient: FetchPriceClient,
 ) {
   return async function updatePrescription(
     input: UpdatePrescriptionInput,
@@ -52,15 +64,18 @@ export function makeUpdatePrescription(
       nickname: member.nickname,
       medicines: member.medicines.map((med) => ({
         id: med.id ?? randomUUID(),
-        medicationId: med.medicationId,
-        name: '',
-        genericName: '',
-        strength: '',
-        form: 'tablet',
+        name: med.name,
+        genericName: med.genericName,
+        form: med.form,
+        strength: med.strength,
+        strengthUnit: med.strengthUnit,
+        dosageUnit: med.dosageUnit,
         quantity: med.quantity,
-        quantityUnit: med.quantityUnit,
-        normalizationStatus: 'verified' as const,
-        // Placeholder until refreshPrices runs below.
+        frequency: med.frequency,
+        prescriberName: med.prescriberName,
+        refills: med.refills,
+        medId: med.medId,
+        // Placeholder until priceMembers runs below.
         unitPrice: 0,
         total: 0,
         deleted: false,
@@ -70,24 +85,20 @@ export function makeUpdatePrescription(
     // Soft-deletes any member/medicine dropped from the submission.
     const mergedMembers = reconcileMembersOnUpdate(existing.members, incomingMembers);
 
-    await refreshPrices(mergedMembers, pricingClient);
+    const { priceComparisons, priceComparisonStatus } = await priceMembers(
+      mergedMembers,
+      fetchPriceClient,
+    );
 
     const updated: PrescriptionHousehold = {
       ...existing,
       members: mergedMembers,
       totalPrice: computePrescriptionTotal(mergedMembers),
       lastUpdatedAt: new Date(),
-      priceComparisonStatus: 'pending',
-      priceComparisons: [],
+      priceComparisonStatus,
+      priceComparisons,
     };
 
-    const saved = await prescriptionRepository.replace(updated);
-
-    await jobQueue.enqueuePriceComparisonJob({
-      prescriptionId: saved.id,
-      householdId: saved.householdId,
-    });
-
-    return saved;
+    return prescriptionRepository.replace(updated);
   };
 }
