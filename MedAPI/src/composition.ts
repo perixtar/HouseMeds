@@ -36,6 +36,7 @@ import { makeDeletePrescription } from './usecases/delete-prescription.usecase';
 import { makeListPrescriptions } from './usecases/list-prescriptions.usecase';
 import { makeGetPrescription } from './usecases/get-prescription.usecase';
 import { makeGetPriceComparison } from './usecases/get-price-comparison.usecase';
+import { makeSearchMedications } from './usecases/search-medications.usecase';
 
 const useMock = isMockTarget();
 logger.info(`Med service starting with TARGET_SOURCE=${useMock ? 'mock' : 'aws'}`);
@@ -78,6 +79,7 @@ export const usecases = {
   deletePrescription: makeDeletePrescription(prescriptionRepository),
   listPrescriptions: makeListPrescriptions(prescriptionRepository),
   getPrescription: makeGetPrescription(prescriptionRepository),
+  searchMedications: makeSearchMedications(pricingClient),
   getPriceComparison: makeGetPriceComparison(
     prescriptionRepository,
     priceComparisonSources,

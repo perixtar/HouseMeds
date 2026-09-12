@@ -75,9 +75,16 @@ function reconcileMedicines(existing: Medicine[], incoming: Medicine[]): Medicin
     }
     result.push({
       ...existingMed,
+      medicationId: incomingMed.medicationId,
+      quantity: incomingMed.quantity,
+      quantityUnit: incomingMed.quantityUnit,
+      // Canonical display and price fields are refreshed from the pricing API.
       name: incomingMed.name,
       genericName: incomingMed.genericName,
-      quantity: incomingMed.quantity,
+      strength: incomingMed.strength,
+      form: incomingMed.form,
+      unitPrice: incomingMed.unitPrice,
+      total: incomingMed.total,
     });
   }
 

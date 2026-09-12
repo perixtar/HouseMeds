@@ -14,7 +14,14 @@ export class MockPriceComparisonAdapter implements PriceComparison {
   readonly name = fixture.source;
 
   async getQuotes(
-    medicines: { medicineId: string; name: string; genericName: string }[],
+    medicines: {
+      medicineId: string;
+      medicationId: string;
+      name: string;
+      genericName: string;
+      quantity: number;
+      quantityUnit: import('../../domain/types').QuantityUnit;
+    }[],
   ): Promise<PriceComparisonQuote[]> {
     return medicines.map((m) => ({
       medicineId: m.medicineId,

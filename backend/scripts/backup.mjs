@@ -6,7 +6,7 @@ import {resolve} from 'node:path';
 import {randomBytes} from 'node:crypto';
 import {artifactRoots,digest,collectArtifacts,decodeArtifactFiles,checkEvidenceReferences,restoreArtifacts} from './backup-files.mjs';
 process.loadEnvFile('.env.worker');
-const tables=['sources','medications','crawl_runs','listings','crawl_pages','offers','offer_history'];
+const tables=['sources','medications','medication_components','crawl_runs','listings','medication_matches','crawl_pages','offers','offer_history'];
 const live=new pg.Client({connectionString:process.env.DATABASE_URL,stream:()=>new DatabaseSocket(),connectionTimeoutMillis:15000,ssl:{rejectUnauthorized:true,ca:await readFile('config/supabase-ca.crt','utf8')}});
 await live.connect();const snapshot={format:'housemed-logical-backup-v3',created_at:new Date().toISOString(),tables:{},files:[]};
 try{await live.query('begin isolation level repeatable read read only');for(const table of tables)snapshot.tables[table]=(await live.query(`select * from pricing.${table} order by id`)).rows;await live.query('commit');}finally{await live.end();}

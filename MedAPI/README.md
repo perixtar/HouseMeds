@@ -132,16 +132,22 @@ TOKEN=$(curl -s -X POST localhost:3000/login -H 'Content-Type: application/json'
   -d '{"email":"demo@yopmail.com","password":"correct-horse-battery-staple"}' \
   | python3 -c "import sys,json;print(json.load(sys.stdin)['idToken'])")
 
+curl -s 'localhost:3000/medications?q=lisinopril' \
+  -H "Authorization: Bearer $TOKEN"
+
 curl -s -X POST localhost:3000/prescriptions \
   -H "Authorization: Bearer $TOKEN" -H "Idempotency-Key: demo-1" \
   -H 'Content-Type: application/json' \
-  -d '{"members":[{"nickname":"Rex","medicines":[{"name":"Amoxicillin","genericName":"amoxicillin","quantity":2}]}]}'
+  -d '{"members":[{"nickname":"Rex","medicines":[{"medicationId":"1","quantity":2,"quantityUnit":"capsule"}]}]}'
 ```
 
-Medicine names not listed in `mock-json/mock-data.json`'s
-`calls.getLatestPrices.response.prices` still work — they fall back to that
-fixture's `default` price. Add a name there (and to
-`calls.getPriceComparisonQuotes.response.prices`) to give it its own mock price.
+`medicationId` is the canonical pricing-catalog ID, not the UUID of the household
+medicine line. The server resolves the canonical name, generic name, strength, and
+form from the pricing API and requests the exact physical `quantity` and
+`quantityUnit`. Mock IDs `1` through `5` cover the five names in
+`calls.getLatestPrices.response.prices`; unknown canonical IDs fail closed.
+For a real client, call authenticated `GET /medications?q=<name>` first and submit
+the selected result's `medicationId`; never invent or infer that ID from free text.
 
 ### `aws` — the real thing
 
@@ -309,16 +315,16 @@ sends it automatically.
 
 Implemented: all routes, use-cases, domain logic, and adapters (both `mock` and
 `aws` target sources) for registration/login/password-reset, prescription
-CRUD with soft-delete, server-side price recalculation, and the async
-price-comparison worker. `dev` is deployed and live under both target sources.
+CRUD with soft-delete, canonical medication IDs and exact quantity units,
+server-authoritative price refresh, and the async price-comparison worker. `dev`
+was previously deployed; the incoming-normalization contract must be redeployed
+before clients rely on it.
 Not yet done:
 
-- Adapter integration tests against recorded fixtures (`test:integration` has no
-  specs yet).
+- Deployment of the incoming-normalization contract to the shared environment.
 - `prod` — Cognito/SQS/SSM/Lambdas/API Gateway not yet provisioned.
 - A `/confirm-signup` endpoint — Cognito is configured to confirm new accounts via
   an emailed link (handled entirely by Cognito's hosted UI), so no app-side route
   is needed for the current signup flow.
-- The pricing API's real request/response contract is assumed pending the actual
-  vendor's API docs — update `src/adapters/pricing/pricing-api.adapter.ts` once
-  confirmed.
+- Existing Mongo prescription records still need the separate normalization
+  backfill milestone.

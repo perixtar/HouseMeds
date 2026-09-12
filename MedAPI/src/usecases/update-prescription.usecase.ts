@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { PrescriptionRepository } from '../ports/prescription-repository.port';
 import type { PricingClient } from '../ports/pricing-client.port';
 import type { JobQueue } from '../ports/job-queue.port';
-import type { Member, PrescriptionHousehold } from '../domain/types';
+import type { Member, PrescriptionHousehold, QuantityUnit } from '../domain/types';
 import {
   computePrescriptionTotal,
   reconcileMembersOnUpdate,
@@ -13,9 +13,9 @@ import { refreshPrices } from './add-prescription.usecase';
 export interface UpdatePrescriptionMedicineInput {
   /** Omit to add a new medicine line; include an existing id to update it. */
   id?: string;
-  name: string;
-  genericName: string;
+  medicationId: string;
   quantity: number;
+  quantityUnit: QuantityUnit;
 }
 
 export interface UpdatePrescriptionMemberInput {
@@ -52,9 +52,13 @@ export function makeUpdatePrescription(
       nickname: member.nickname,
       medicines: member.medicines.map((med) => ({
         id: med.id ?? randomUUID(),
-        name: med.name,
-        genericName: med.genericName,
+        medicationId: med.medicationId,
+        name: '',
+        genericName: '',
+        strength: '',
+        form: 'tablet',
         quantity: med.quantity,
+        quantityUnit: med.quantityUnit,
         // Placeholder until refreshPrices runs below.
         unitPrice: 0,
         total: 0,

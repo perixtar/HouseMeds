@@ -2,13 +2,19 @@ import { randomUUID } from 'node:crypto';
 import type { PrescriptionRepository } from '../ports/prescription-repository.port';
 import type { PricingClient } from '../ports/pricing-client.port';
 import type { JobQueue } from '../ports/job-queue.port';
-import type { Medicine, Member, PrescriptionHousehold } from '../domain/types';
-import { computeMedicineTotal, computePrescriptionTotal } from '../domain/prescription';
+import type {
+  Medicine,
+  Member,
+  PrescriptionHousehold,
+  QuantityUnit,
+} from '../domain/types';
+import { computePrescriptionTotal } from '../domain/prescription';
+import { PricingUnavailableError } from '../errors/domain-errors';
 
 export interface AddPrescriptionMedicineInput {
-  name: string;
-  genericName: string;
+  medicationId: string;
   quantity: number;
+  quantityUnit: QuantityUnit;
 }
 
 export interface AddPrescriptionMemberInput {
@@ -34,9 +40,13 @@ export function makeAddPrescription(
       nickname: member.nickname,
       medicines: member.medicines.map((med) => ({
         id: randomUUID(),
-        name: med.name,
-        genericName: med.genericName,
+        medicationId: med.medicationId,
+        name: '',
+        genericName: '',
+        strength: '',
+        form: 'tablet',
         quantity: med.quantity,
+        quantityUnit: med.quantityUnit,
         unitPrice: 0,
         total: 0,
         deleted: false,
@@ -82,18 +92,30 @@ export async function refreshPrices(
 
   const quotes = await pricingClient.getLatestPrices(
     activeMedicines.map((med) => ({
-      medicineId: med.id,
-      name: med.name,
-      genericName: med.genericName,
+      medicineLineId: med.id,
+      medicationId: med.medicationId,
       quantity: med.quantity,
+      quantityUnit: med.quantityUnit,
     })),
   );
-  const quoteByMedicineId = new Map(quotes.map((q) => [q.medicineId, q.unitPrice]));
+  const quoteByLineId = new Map(quotes.map((quote) => [quote.medicineLineId, quote]));
 
   for (const med of activeMedicines) {
-    const unitPrice = quoteByMedicineId.get(med.id);
-    if (unitPrice === undefined) continue;
-    med.unitPrice = unitPrice;
-    med.total = computeMedicineTotal(med.quantity, unitPrice);
+    const quote = quoteByLineId.get(med.id);
+    if (
+      !quote ||
+      quote.medicationId !== med.medicationId ||
+      quote.quantityUnit !== med.quantityUnit
+    ) {
+      throw new PricingUnavailableError(
+        'No exact canonical medication quote is available',
+      );
+    }
+    med.name = quote.name;
+    med.genericName = quote.genericName;
+    med.strength = quote.strength;
+    med.form = quote.form;
+    med.unitPrice = quote.unitPrice;
+    med.total = quote.total;
   }
 }

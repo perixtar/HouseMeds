@@ -1,4 +1,7 @@
+import type { MedicationForm } from '../../domain/types';
+import { medicationForms } from '../../domain/types';
 import type {
+  CanonicalMedicationSummary,
   PriceQuote,
   PriceQuoteRequest,
   PricingClient,
@@ -15,16 +18,30 @@ const breaker = new FreshPriceMonitor({
   resetTimeoutMs: 30_000,
 });
 
-interface PricingApiResponseItem {
-  medicineId: string;
-  unitPrice: number;
+interface PricingMedication {
+  id: string;
+  name: string;
+  canonical_name: string | null;
+  strength: string;
+  form: string;
+  normalization_status: string;
+}
+interface PricingOffer {
+  price_cents: string;
+  physical_quantity: string;
+  content_unit: string;
+}
+interface PricingApiResponse {
+  medication: PricingMedication;
+  items: PricingOffer[];
+  quote_status: string;
 }
 
-// A slow/failing call degrades to PricingUnavailableError, never a guessed price.
 export class PricingApiAdapter implements PricingClient {
+  constructor(private readonly configured?: { baseUrl: string; apiKey: string }) {}
+
   async getLatestPrices(requests: PriceQuoteRequest[]): Promise<PriceQuote[]> {
     if (requests.length === 0) return [];
-
     try {
       return await breaker.execute(() => this.fetchPrices(requests));
     } catch (err) {
@@ -36,34 +53,121 @@ export class PricingApiAdapter implements PricingClient {
     }
   }
 
-  private async fetchPrices(requests: PriceQuoteRequest[]): Promise<PriceQuote[]> {
-    const apiKey = await getPricingApiKey();
-    const baseUrl = getPricingApiBaseUrl();
-
-    const response = await fetch(`${baseUrl}/v1/prices/lookup`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        items: requests.map((r) => ({
-          medicineId: r.medicineId,
-          name: r.name,
-          genericName: r.genericName,
-          quantity: r.quantity,
-        })),
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Pricing API responded with status ${response.status}`);
+  async searchMedications(query: string): Promise<CanonicalMedicationSummary[]> {
+    try {
+      const apiKey = this.configured?.apiKey ?? (await getPricingApiKey()),
+        baseUrl = this.configured?.baseUrl ?? getPricingApiBaseUrl();
+      const url = new URL('/v1/medications', baseUrl);
+      url.searchParams.set('q', query);
+      url.searchParams.set('limit', '30');
+      const response = await fetch(url, {
+        method: 'GET',
+        redirect: 'error',
+        signal: AbortSignal.timeout(3000),
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!response.ok)
+        throw Error(`Pricing API responded with status ${response.status}`);
+      const body = (await response.json()) as {
+        items: Array<{
+          id: string;
+          name: string;
+          canonical_name: string | null;
+          strength: string;
+          form: string;
+          route: string;
+          release_type: string;
+          rxnorm_rxcui: string | null;
+          normalization_status: string;
+        }>;
+      };
+      return body.items
+        .filter(
+          (item) =>
+            item.normalization_status === 'verified' &&
+            medicationForms.includes(item.form as MedicationForm),
+        )
+        .map((item) => ({
+          medicationId: item.id,
+          name: item.canonical_name ?? [item.name, item.strength, item.form].join(' '),
+          genericName: item.name,
+          strength: item.strength,
+          form: item.form as MedicationForm,
+          route: item.route,
+          releaseType: item.release_type,
+          rxnormRxcui: item.rxnorm_rxcui,
+        }));
+    } catch (err) {
+      logger.warn('Medication catalog search failed', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+      throw new PricingUnavailableError('Medication catalog is temporarily unavailable');
     }
+  }
 
-    const body = (await response.json()) as { prices: PricingApiResponseItem[] };
-    return body.prices.map((item) => ({
-      medicineId: item.medicineId,
-      unitPrice: item.unitPrice,
-    }));
+  private async fetchPrices(requests: PriceQuoteRequest[]): Promise<PriceQuote[]> {
+    const apiKey = this.configured?.apiKey ?? (await getPricingApiKey()),
+      baseUrl = this.configured?.baseUrl ?? getPricingApiBaseUrl();
+    return Promise.all(
+      requests.map((request) => this.fetchOne(baseUrl, apiKey, request)),
+    );
+  }
+
+  private async fetchOne(
+    baseUrl: string,
+    apiKey: string,
+    request: PriceQuoteRequest,
+  ): Promise<PriceQuote> {
+    if (!/^[1-9][0-9]{0,17}$/.test(request.medicationId))
+      throw Error('INVALID_CANONICAL_MEDICATION_ID');
+    const url = new URL(`/v1/medications/${request.medicationId}/offers`, baseUrl);
+    url.searchParams.set('quantity', String(request.quantity));
+    url.searchParams.set('unit', request.quantityUnit);
+    const response = await fetch(url, {
+      method: 'GET',
+      redirect: 'error',
+      signal: AbortSignal.timeout(3000),
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!response.ok) throw Error(`Pricing API responded with status ${response.status}`);
+    const body = (await response.json()) as PricingApiResponse;
+    if (
+      body.medication?.id !== request.medicationId ||
+      !Array.isArray(body.items) ||
+      body.items.length === 0
+    )
+      throw Error('NO_ELIGIBLE_EXACT_QUOTE');
+    if (body.medication.normalization_status !== 'verified')
+      throw Error('MEDICATION_IDENTITY_NOT_VERIFIED');
+    const form = body.medication.form as MedicationForm;
+    if (!medicationForms.includes(form)) throw Error('UNSUPPORTED_MEDICATION_FORM');
+    const eligible = body.items.filter(
+      (item) =>
+        item.content_unit === request.quantityUnit &&
+        /^\d+$/.test(item.price_cents) &&
+        Number.isFinite(Number(item.physical_quantity)) &&
+        Number(item.physical_quantity) === request.quantity,
+    );
+    if (!eligible.length) throw Error('NO_ELIGIBLE_EXACT_QUOTE');
+    const best = eligible.reduce((a, b) =>
+        BigInt(a.price_cents) <= BigInt(b.price_cents) ? a : b,
+      ),
+      cents = Number(best.price_cents);
+    if (!Number.isSafeInteger(cents)) throw Error('PRICE_OUT_OF_RANGE');
+    const total = cents / 100,
+      unitPrice = Math.round((total / request.quantity) * 10000) / 10000;
+    return {
+      medicineLineId: request.medicineLineId,
+      medicationId: body.medication.id,
+      name:
+        body.medication.canonical_name ??
+        [body.medication.name, body.medication.strength, body.medication.form].join(' '),
+      genericName: body.medication.name,
+      strength: body.medication.strength,
+      form,
+      quantityUnit: request.quantityUnit,
+      unitPrice,
+      total,
+    };
   }
 }

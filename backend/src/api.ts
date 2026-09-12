@@ -8,9 +8,11 @@ const idPattern='^[1-9][0-9]{0,17}$';
 const sourceValues=['healthwarehouse','costplus'];
 type OfferQuery={quantity?:string;unit?:string;source?:string;location?:string;program?:string;include_estimates?:boolean;limit?:number;cursor?:string};
 const offerSchema={params:{type:'object',required:['id'],properties:{id:{type:'string',pattern:idPattern}}},querystring:{type:'object',additionalProperties:false,properties:{quantity:{type:'string',pattern:'^[0-9]+(?:\\.[0-9]+)?$',maxLength:24},unit:{type:'string',pattern:'^[a-z_]+$',maxLength:32},source:{type:'string',enum:sourceValues},location:{type:'string',maxLength:64},program:{type:'string',maxLength:64},include_estimates:{type:'boolean',default:false},limit:{type:'integer',minimum:1,maximum:100,default:50},cursor:{type:'string',pattern:idPattern}}}};
+const medicationColumns=`m.id,m.name,m.strength,m.form,m.route,m.release_type,m.canonical_name,m.rxnorm_rxcui,m.rxnorm_term_type,coalesce(m.normalization_status,'legacy') as normalization_status,m.normalization_version,m.terminology_version,
+ coalesce((select jsonb_agg(jsonb_build_object('sequence',mc.sequence,'ingredient_name',mc.ingredient_name,'ingredient_rxcui',mc.ingredient_rxcui,'precise_ingredient_rxcui',mc.precise_ingredient_rxcui,'numerator_value',mc.numerator_value::text,'numerator_unit',mc.numerator_unit,'denominator_value',mc.denominator_value::text,'denominator_unit',mc.denominator_unit) order by mc.sequence) from pricing.medication_components mc where mc.medication_id=m.id),'[]'::jsonb) as components`;
 const listingColumns=`l.id as listing_id,s.slug as source,l.source_name,l.brand_name,l.url as purchase_url,l.sold_as,l.content_quantity,l.content_unit,l.match_status,
  case when l.match_status='verified' then l.medication_id end as medication_id,
- case when m.id is not null then jsonb_build_object('id',m.id::text,'name',m.name,'strength',m.strength,'form',m.form,'route',m.route,'release_type',m.release_type) end as medication`;
+ case when m.id is not null then jsonb_build_object('id',m.id::text,'name',m.name,'canonical_name',m.canonical_name,'strength',m.strength,'form',m.form,'route',m.route,'release_type',m.release_type,'rxnorm_rxcui',m.rxnorm_rxcui,'rxnorm_term_type',m.rxnorm_term_type,'normalization_status',coalesce(m.normalization_status,'legacy'),'normalization_version',m.normalization_version,'terminology_version',m.terminology_version,'components',coalesce((select jsonb_agg(jsonb_build_object('sequence',mc.sequence,'ingredient_name',mc.ingredient_name,'ingredient_rxcui',mc.ingredient_rxcui,'precise_ingredient_rxcui',mc.precise_ingredient_rxcui,'numerator_value',mc.numerator_value::text,'numerator_unit',mc.numerator_unit,'denominator_value',mc.denominator_value::text,'denominator_unit',mc.denominator_unit) order by mc.sequence) from pricing.medication_components mc where mc.medication_id=m.id),'[]'::jsonb)) end as medication`;
 const listingJoins="from pricing.listings l join pricing.sources s on s.id=l.source_id left join pricing.medications m on m.id=l.medication_id and l.match_status='verified'";
 const matchingRule=(sourceOnly:boolean)=>sourceOnly?"l.match_status<>'needs_review'":"l.match_status='verified'";
 const availabilityRule=(includeEstimates:boolean)=>includeEstimates?"coalesce((o.availability='in_stock' or (o.availability='unknown' and o.terms->>'quote_kind'='estimate' and o.terms->>'availability_basis'='not_provided_by_api')),false)":"o.availability='in_stock'";
@@ -26,10 +28,10 @@ export function buildApi(pool:pg.Pool,token:string){
  async function status(){
   const {rows}=await pool.query(`select s.slug as source,s.enabled,r.status as latest_run_status,r.started_at as latest_run_started_at,
    r.finished_at as latest_run_finished_at,(select max(finished_at) from pricing.crawl_runs where source_id=s.id and status='succeeded') as last_successful_run_at,
-   coalesce(c.listings,0)::int as listings,coalesce(c.verified,0)::int as verified_listings,
+   coalesce(c.listings,0)::int as listings,coalesce(c.verified,0)::int as verified_listings,coalesce(c.normalized_verified,0)::int as normalized_verified_listings,coalesce(c.normalization_review,0)::int as normalization_needs_review,coalesce(c.normalization_unmatched,0)::int as normalization_unmatched,
    coalesce(p.fresh,0)::int as fresh_eligible_offers,coalesce(p.stale,0)::int as stale_offers
   from pricing.sources s left join lateral(select status,started_at,finished_at from pricing.crawl_runs where source_id=s.id order by started_at desc,id desc limit 1) r on true
-  left join lateral(select count(*) as listings,count(*) filter(where match_status='verified') as verified from pricing.listings where source_id=s.id) c on true
+  left join lateral(select count(*) as listings,count(*) filter(where match_status='verified') as verified,count(*) filter(where metadata->'normalization'->>'status'='verified') as normalized_verified,count(*) filter(where metadata->'normalization'->>'status'='needs_review') as normalization_review,count(*) filter(where metadata->'normalization'->>'status'='unmatched') as normalization_unmatched from pricing.listings where source_id=s.id) c on true
   left join lateral(select count(*) filter(where o.active and o.availability='in_stock' and o.price_cents is not null and l.match_status='verified' and l.content_quantity is not null and l.content_unit is not null and s.enabled and o.last_checked_at>=now()-interval '24 hours' and (o.valid_until is null or o.valid_until>now())) as fresh,
   count(*) filter(where o.last_checked_at<now()-interval '24 hours' or o.valid_until<=now()) as stale from pricing.offers o join pricing.listings l on l.id=o.listing_id where l.source_id=s.id) p on true order by s.slug`);
   return rows;
@@ -37,7 +39,7 @@ export function buildApi(pool:pg.Pool,token:string){
  app.get('/v1/sources/status',async()=>({as_of:new Date().toISOString(),sources:await status()}));
  app.get<{Querystring:{q?:string;limit?:number;cursor?:string}}>('/v1/medications',{schema:{querystring:{type:'object',additionalProperties:false,properties:{q:{type:'string',minLength:2,maxLength:120},limit:{type:'integer',minimum:1,maximum:100,default:30},cursor:{type:'string',pattern:idPattern}}}}},async(req)=>{
   const limit=req.query.limit??30,search=req.query.q?.replace(/[\\%_]/g,'\\$&')??null;
-  const {rows}=await pool.query(`select id,name,strength,form,route,release_type from pricing.medications where ($1::text is null or name ilike '%'||$1||'%' escape '\\') and id>$2::bigint order by id limit $3`,[search,req.query.cursor??'0',limit+1]);
+  const {rows}=await pool.query(`select ${medicationColumns} from pricing.medications m where m.superseded_by_id is null and ($1::text is null or coalesce(m.canonical_name,m.name) ilike '%'||$1||'%' escape '\\' or m.name ilike '%'||$1||'%' escape '\\') and m.id>$2::bigint order by m.id limit $3`,[search,req.query.cursor??'0',limit+1]);
   const more=rows.length>limit;return {items:rows.slice(0,limit),next_cursor:more?rows[limit-1].id:null};
  });
  app.get<{Querystring:{q?:string;source?:string;limit?:number;cursor?:string}}>('/v1/listings',{schema:{querystring:{type:'object',additionalProperties:false,properties:{q:{type:'string',minLength:2,maxLength:120},source:{type:'string',enum:sourceValues},limit:{type:'integer',minimum:1,maximum:100,default:20},cursor:{type:'string',pattern:idPattern}}}}},async(req)=>{
@@ -52,7 +54,7 @@ export function buildApi(pool:pg.Pool,token:string){
   const query=req.query,includeEstimates=req.query.include_estimates===true;
   if(Boolean(query.quantity)!==Boolean(query.unit))return reply.code(400).send({error:'quantity_and_unit_required_together'});
   let q:string|null=null;try{q=query.quantity?quantity(query.quantity):null;}catch{return reply.code(400).send({error:'invalid_quantity'});}
-  const entity=(await pool.query(sourceOnly?`select ${listingColumns} ${listingJoins} where l.id=$1`:'select id,name,strength,form,route,release_type from pricing.medications where id=$1',[req.params.id])).rows[0];
+  const entity=(await pool.query(sourceOnly?`select ${listingColumns} ${listingJoins} where l.id=$1`:`select ${medicationColumns} from pricing.medications m where m.id=$1 and m.superseded_by_id is null`,[req.params.id])).rows[0];
   if(!entity)return reply.code(404).send({error:sourceOnly?'listing_not_found':'medication_not_found'});
   const identityColumn=sourceOnly?'l.id':'l.medication_id',matchingScope=sourceOnly?'source_listing_only':'reviewed_medication';
   const asOf=new Date().toISOString(),limit=query.limit??50;

@@ -42,10 +42,10 @@
       "request": {
         "items": [
           {
-            "medicineId": "11111111-1111-1111-1111-111111111111",
-            "name": "Amoxicillin",
-            "genericName": "amoxicillin",
-            "quantity": 2
+            "medicineLineId": "11111111-1111-1111-1111-111111111111",
+            "medicationId": "1",
+            "quantity": 2,
+            "quantityUnit": "capsule"
           }
         ]
       },
@@ -65,8 +65,11 @@
         "medicines": [
           {
             "medicineId": "11111111-1111-1111-1111-111111111111",
+            "medicationId": "1",
             "name": "Amoxicillin",
-            "genericName": "amoxicillin"
+            "genericName": "amoxicillin",
+            "quantity": 2,
+            "quantityUnit": "capsule"
           }
         ]
       },

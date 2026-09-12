@@ -30,8 +30,11 @@ export function makeGetPriceComparison(
 
     const activeMedicines = listActiveMedicines(prescription.members).map((med) => ({
       medicineId: med.id,
+      medicationId: med.medicationId,
       name: med.name,
       genericName: med.genericName,
+      quantity: med.quantity,
+      quantityUnit: med.quantityUnit,
     }));
 
     if (activeMedicines.length === 0) {

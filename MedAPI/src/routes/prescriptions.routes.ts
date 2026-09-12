@@ -7,13 +7,17 @@ import { usecases } from '../composition';
 import { requireHousehold } from '../common/auth';
 import { isMockTarget, requireEnv } from '../config/env';
 import { errorResponseSchema, bearerAuthSecurity } from '../common/http-schemas';
-import type { PrescriptionHousehold } from '../domain/types';
+import {
+  medicationForms,
+  quantityUnits,
+  type PrescriptionHousehold,
+} from '../domain/types';
 
 const medicineInputSchema = z.object({
   id: z.string().uuid().optional(),
-  name: z.string().min(1),
-  genericName: z.string().min(1),
+  medicationId: z.string().regex(/^[1-9][0-9]{0,17}$/),
   quantity: z.number().int().positive(),
+  quantityUnit: z.enum(quantityUnits),
 });
 
 const memberInputSchema = z.object({
@@ -35,11 +39,31 @@ const listQuerySchema = z.object({
     .transform((v) => v === 'true'),
 });
 
+const medicationSearchQuerySchema = z.object({ q: z.string().min(2).max(120) });
+const medicationSearchResponseSchema = z.object({
+  items: z.array(
+    z.object({
+      medicationId: z.string(),
+      name: z.string(),
+      genericName: z.string(),
+      strength: z.string(),
+      form: z.enum(medicationForms),
+      route: z.string(),
+      releaseType: z.string(),
+      rxnormRxcui: z.string().nullable(),
+    }),
+  ),
+});
+
 const medicineResponseSchema = z.object({
   id: z.string(),
+  medicationId: z.string(),
   name: z.string(),
   genericName: z.string(),
+  strength: z.string(),
+  form: z.enum(medicationForms),
   quantity: z.number(),
+  quantityUnit: z.enum(quantityUnits),
   unitPrice: z.number(),
   total: z.number(),
   deleted: z.boolean(),
@@ -110,6 +134,28 @@ export function registerPrescriptionRoutes(app: FastifyInstance): void {
     const server = scoped.withTypeProvider<ZodTypeProvider>();
 
     server.addHook('preHandler', requireHousehold);
+
+    server.get(
+      '/medications',
+      {
+        schema: {
+          tags: ['Prescriptions'],
+          summary: 'Search verified canonical medications',
+          description:
+            'Returns canonical pricing medication IDs that can be used in new prescription lines. Free text is search input only; the client must submit the selected medicationId.',
+          security: bearerAuthSecurity,
+          querystring: medicationSearchQuerySchema,
+          response: {
+            200: medicationSearchResponseSchema,
+            401: errorResponseSchema,
+            503: errorResponseSchema,
+          },
+        },
+      },
+      async (request) => ({
+        items: await usecases.searchMedications({ query: request.query.q }),
+      }),
+    );
 
     server.post(
       '/prescriptions',
