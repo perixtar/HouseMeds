@@ -18,6 +18,7 @@
         <a class="brand" href="#house" aria-label="HouseMeds home"><span class="house-logo" aria-hidden="true"><span>Rx</span></span><span class="logo-name">HouseMeds</span></a>
         <button class="icon-button" id="helpButton" aria-label="Open medication assistant">✦</button>
       </header>
+      <p id="familyDemoNotice" class="prototype-notice" hidden>Family demo · sample medicines. <a href="./">Open your household to upload prescriptions →</a></p>
 
       <section id="house" class="screen active" data-screen="house">
         <div class="eyebrow" id="householdName">YOUR HOUSEHOLD</div>
@@ -41,12 +42,12 @@
         <h1>Whose medicines are we adding?</h1>
         <p class="lede">You can return anytime to add or update a list.</p>
         <div id="personChoices" class="person-choices"></div>
-        <button id="chooseNext" class="text-button">I’m finished adding medicines <span>→</span></button>
+        <button id="chooseNext" class="text-button">See all household deals <span>→</span></button>
       </section>
 
       <section id="meds" class="screen" data-screen="meds">
         <div class="eyebrow" id="medsEyebrow">MEDICINES</div>
-        <h1><span id="medsTitle">Grandma’s</span> medicine list</h1>
+        <h1><span id="medsTitle">Your</span> medicine list</h1>
         <div id="medicineList" class="medicine-list"></div>
         <button id="showMedicineForm" class="outline full">＋ Add medicine manually</button>
         <button id="openAssistant" class="ai-button full"><span>✦</span> Create with HouseMeds AI</button>
@@ -54,19 +55,19 @@
       </section>
 
       <section id="deals" class="screen" data-screen="deals">
-        <div class="eyebrow">YOUR SAVINGS PLAN</div>
-        <h1>Best deals for your house</h1>
-        <p class="lede">Tap a medicine to compare options for your household.</p>
+        <div class="eyebrow" id="dealsEyebrow">HOUSEHOLD SAVINGS PLAN</div>
+        <h1 id="dealsTitle">Deals for your household</h1>
+        <p class="lede" id="dealsDescription">Compare options for all saved household medicines.</p>
         <p class="prototype-notice">Mock pricing preview · Example prices for your saved medicines, not live pharmacy quotes.</p>
         <div id="savingsCard" class="savings-card"><span>Illustrative yearly savings</span><strong id="savingsTotal">$0.00</strong><small>using the prototype’s example 90-day prices</small></div>
-        <div id="dealsEmpty" hidden><p class="lede">Add a medicine to preview deals for your house.</p><button id="dealsAddMedicine" class="outline full">Choose a household member →</button></div>
+        <div id="dealsEmpty" hidden><p class="lede" id="dealsEmptyMessage">Add a medicine to preview deals for your house.</p><button id="dealsAddMedicine" class="outline full">Choose a household member →</button></div>
         <div id="dealList" class="deal-list"></div>
       </section>
 
       <section id="detail" class="screen" data-screen="detail">
         <button class="inline-back" data-go="deals">← All deals</button>
-        <div class="eyebrow">BEST PRICE FOR <span id="detailPerson">GRANDMA</span></div>
-        <h1 id="detailName">Sertraline 100mg</h1>
+        <div class="eyebrow">BEST PRICE FOR <span id="detailPerson"></span></div>
+        <h1 id="detailName"></h1>
         <p id="detailIdentity" class="drug-subtitle"></p>
         <p class="prototype-notice">Mock pricing preview · These offers are examples, not live quotes.</p>
         <div class="recommended">
@@ -74,12 +75,12 @@
           <h2 id="dealPharmacy"></h2>
           <div class="price-row"><strong id="dealPrice"></strong><span id="dealSupply"></span></div>
           <p>Illustrative cash price · availability has not been checked</p>
-          <button class="primary full" id="selectDeal">Select this deal</button>
+          <a class="primary full pharmacy-link" id="selectDeal" rel="noreferrer" referrerpolicy="no-referrer">Select this deal →</a>
           <p id="dealSelection" role="status"></p>
         </div>
         <h3>Other options</h3>
         <div id="otherOffers"></div>
-        <div class="how-it-works"><span>✦</span><p><b>Preview the next step</b><br />Selecting an example offer stays in this demo. It does not order medicine or contact a pharmacy.</p></div>
+        <div class="how-it-works"><span>✦</span><p><b>Continue at the pharmacy</b><br />Select this deal to open Cost Plus Drugs. Review the product and final price on their site before continuing.</p></div>
       </section>
     </main>
 

@@ -1,14 +1,15 @@
 import {callPrescriptionApi} from './api.js';
 import {prototypeDeals, money} from './deals.js';
+import {familyDemo, familyDemoState, storageKey} from './demo.js';
 // PR #4 mobile UI: all persistence goes through the independent HTTP API.
 const $ = selector => document.querySelector(selector);
 const $$ = selector => document.querySelectorAll(selector);
 const state = {members: [], prescriptions: [], selected: '', draft: null, drafts: [], member: '', photo: null, busy: false, edits: {}, pendingAction: null};
 const fields = {medication: 'medicineName', strength: 'strength', form: 'medicineType', directions: 'dosage', quantity: 'quantity', refills: 'refills', prescriber: 'prescriber', pharmacy: 'pharmacy'};
-const draftKey = 'housemed_mobile_draft_id';
-const contextKey = 'housemed_intake_context';
+const draftKey = storageKey('housemed_mobile_draft_id');
+const contextKey = storageKey('housemed_intake_context');
 let lastRequest, manualRequestId, preview, progressTimer;
-let deals = [], selectedDeal;
+let deals = [], selectedDeal, dealMemberId = null;
 let memberRequest;
 function el(tag, text, className) {
   const node = document.createElement(tag); if (text) node.textContent = text; if (className) node.className = className; return node;
@@ -35,19 +36,28 @@ function renderChoices() {
 function renderMeds() {
   const name = memberName(state.selected);
   $('#medsTitle').textContent = name + '’s'; $('#medsEyebrow').textContent = name.toUpperCase() + ' · MEDICINES';
+  $('#getDeals').textContent = `Get ${name}’s deals →`;
   $('#medicineList').replaceChildren();
   for (const p of medicines(state.selected)) {
     const row = el('article', '', 'medicine'); row.dataset.prescriptionId = p.id;
     const detail = el('span'); detail.append(el('b', `${p.fields.medication} ${p.fields.strength}`.trim()));
     if (p.normalization.status === 'verified') detail.append(el('small', p.normalization.name));
     if (p.fields.directions) detail.append(el('small', p.fields.directions));
-    row.append(el('span', '▰', 'pill'), detail, el('span', 'Saved', 'saved-badge')); $('#medicineList').append(row);
+    row.append(el('span', '▰', 'pill'), detail, el('span', familyDemo ? 'Demo' : 'Saved', 'saved-badge')); $('#medicineList').append(row);
   }
   if (!medicines(state.selected).length) $('#medicineList').append(el('p', 'No medicines added yet. Add one manually or scan a prescription.', 'lede'));
 }
 function render() { renderMembers(); renderChoices(); renderMeds(); }
 function renderDeals() {
-  deals = prototypeDeals(state.prescriptions, state.members);
+  deals = prototypeDeals(state.prescriptions, state.members, dealMemberId);
+  const name = memberName(dealMemberId);
+  const forMember = dealMemberId !== null;
+  $('#deals').dataset.backScreen = forMember ? 'meds' : 'choose';
+  $('#dealsEyebrow').textContent = forMember ? `${name.toUpperCase()} · SAVINGS PLAN` : 'HOUSEHOLD SAVINGS PLAN';
+  $('#dealsTitle').textContent = forMember ? `Deals for ${name}` : 'Deals for your household';
+  $('#dealsDescription').textContent = forMember ? `Compare options for ${name}’s saved medicines.` : 'Compare options for all saved household medicines.';
+  $('#dealsEmptyMessage').textContent = forMember ? `No medicines saved for ${name} yet. Add a medicine to see their deals.` : 'Add a medicine to preview deals for your house.';
+  $('#dealsAddMedicine').textContent = forMember ? `Add a medicine for ${name} →` : 'Choose a household member →';
   $('#dealList').replaceChildren();
   $('#savingsTotal').textContent = money(deals.reduce((total, deal) => total + deal.annualSavingsCents, 0));
   $('#savingsCard').hidden = !deals.length;
@@ -69,10 +79,14 @@ function showDeal(deal) {
   $('#otherOffers').replaceChildren(...deal.offers.slice(1).map(offer => {
     const row = el('div', '', 'option'); row.append(el('span', offer.pharmacy), el('b', money(offer.priceCents))); return row;
   }));
-  $('#selectDeal').textContent = 'Select this deal'; $('#dealSelection').textContent = '';
+  $('#selectDeal').textContent = deal.best.product ? 'Select this deal →' : 'Browse Cost Plus Drugs →';
+  $('#selectDeal').href = deal.best.productUrl;
+  $('#dealSelection').textContent = deal.best.product
+    ? `Opens ${deal.best.product.name} on Cost Plus Drugs. Check the final price and options there.`
+    : 'An exact product link is not in this demo catalog. Browse Cost Plus Drugs to find your medicine.';
   go('detail');
 }
-function openDeals() { renderDeals(); go('deals'); }
+function openDeals(memberId = null) { dealMemberId = memberId; selectedDeal = null; renderDeals(); go('deals'); }
 function go(id) { $$('.screen').forEach(s => s.classList.toggle('active', s.id === id)); window.scrollTo(0, 0); }
 function closeModals() { $$('.modal').forEach(m => { m.classList.remove('show'); m.setAttribute('aria-hidden', 'true'); }); }
 function openModal(id) { closeModals(); $(id).classList.add('show'); $(id).setAttribute('aria-hidden', 'false'); }
@@ -158,7 +172,7 @@ function apply(result, speak = true) {
   if (result.members) state.members = result.members;
   if (result.prescriptions) state.prescriptions = result.prescriptions;
   if (!state.members.some(m => m.id === state.selected)) state.selected = state.members[0]?.id ?? '';
-  if (result.household_name) $('#householdName').textContent = result.household_name;
+  if (result.household_name) $('#householdName').textContent = familyDemo ? 'Family demo' : result.household_name;
   if (result.status === 'needs_member') state.member = '';
   if ('selected_member_id' in result) state.member = result.selected_member_id ?? '';
   if ('pending_action' in result) state.pendingAction = result.pending_action;
@@ -235,13 +249,12 @@ for (const id of ['#memberList', '#personChoices']) $(id).onclick = event => {
   state.selected = button.dataset.person; renderMeds(); go('meds');
 };
 $('#membersNext').onclick = () => { renderChoices(); go('choose'); };
-for (const id of ['#chooseNext', '#getDeals']) $(id).onclick = openDeals;
+$('#chooseNext').onclick = () => openDeals();
+$('#getDeals').onclick = () => openDeals(state.selected);
 $('[data-go="deals"]').onclick = () => go('deals');
-$('#dealsAddMedicine').onclick = () => { renderChoices(); go('choose'); };
-$('#selectDeal').onclick = () => {
-  if (!selectedDeal) return;
-  $('#selectDeal').textContent = '✓ Selected for this preview';
-  $('#dealSelection').textContent = `${selectedDeal.best.pharmacy} selected for ${selectedDeal.name}. Demo selection only; no order or prescription transfer was sent.`;
+$('#dealsAddMedicine').onclick = () => {
+  if (dealMemberId !== null) { state.selected = dealMemberId; renderMeds(); go('meds'); }
+  else { renderChoices(); go('choose'); }
 };
 for (const id of ['#openAssistant', '#helpButton', '#houseAssistant']) $(id).onclick = () => {
   if (id === '#openAssistant') { state.member = state.selected; renderMemberSelect(); renderBatchSave(); chatActions(); persistContext(); }
@@ -315,10 +328,19 @@ $('#medicineForm').onsubmit = async event => {
 message('Add a prescription photo or type its details. Choose who it’s for, then review individual medicines or ask me to save the whole list.');
 const starter = el('button', 'Add medicine from a picture →', 'starter'); starter.type = 'button'; starter.onclick = () => $('#photoInput').click(); $('#starterChoices').append(starter);
 async function start() {
+  if (familyDemo) {
+    apply(familyDemoState(), false);
+    $('#houseStatus').textContent = 'Sample medicines · choose a member to preview deals.';
+    // This fast, prefilled demo does not send sample records into the live household API.
+    for (const id of ['#memberForm', '#memberStatus', '#houseAssistant', '#helpButton', '#showMedicineForm', '#openAssistant']) $(id).hidden = true;
+    $('#familyDemoNotice').hidden = false;
+    return;
+  }
   const storedContext = sessionStorage.getItem(contextKey);
   setBusy(true);
   try {
-    apply(await request(), false); $('#houseStatus').textContent = state.members.length ? 'Choose a household member.' : 'Add your first household member.';
+    apply(await request(), false);
+    $('#houseStatus').textContent = state.members.length ? 'Choose a household member.' : 'Add your first household member.';
     const id = sessionStorage.getItem(draftKey);
     if (id) {
       try {

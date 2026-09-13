@@ -1,0 +1,1750 @@
+{
+  "exported_at": "2026-09-12T23:08:45.256Z",
+  "public_catalog_url": "https://us-central1-costplusdrugs-publicapi.cloudfunctions.net/main",
+  "entries": [
+    {
+      "listing_id": "5",
+      "name": "Lisinopril",
+      "strength": "20mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/lisinopril-20mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "23",
+      "name": "Metformin",
+      "strength": "500mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/metformin-500mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "24",
+      "name": "Fluoxetine",
+      "strength": "20mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/fluoxetine-20mg-capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "25",
+      "name": "Atorvastatin",
+      "strength": "40mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/atorvastatin-40mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "26",
+      "name": "Amlodipine",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/amlodipine-10mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "27",
+      "name": "Losartan",
+      "strength": "100mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/losartan-100mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "28",
+      "name": "Sertraline",
+      "strength": "50mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/sertraline-50mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "29",
+      "name": "Simvastatin",
+      "strength": "20mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/simvastatin-20mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "30",
+      "name": "Hydrochlorothiazide",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/hydrochlorothiazide-25mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "31",
+      "name": "Amoxicillin (Trihydrate)",
+      "strength": "500mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/amoxicillin-500mg-capsule-amoxil/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "99",
+      "name": "Atorvastatin",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/atorvastatin-10mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "101",
+      "name": "Levothyroxine",
+      "strength": "25mcg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/levothyroxine-25mcg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "103",
+      "name": "Amlodipine",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/amlodipine-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "104",
+      "name": "Lisinopril",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/lisinopril-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "109",
+      "name": "Albuterol Sulfate",
+      "strength": "2mg/5ml",
+      "form": "Syrup",
+      "url": "https://www.costplusdrugs.com/medications/albuterol-sulfate-2mg_5ml-syrup/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "111",
+      "name": "Losartan",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/losartan-25mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "112",
+      "name": "Metoprolol Tartrate",
+      "strength": "100mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/metoprolol-100mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "113",
+      "name": "Rosuvastatin",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/rosuvastatin-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "114",
+      "name": "Omeprazole Delayed Release (DR)",
+      "strength": "10mg",
+      "form": "Delayed Release Capsule",
+      "url": "https://www.costplusdrugs.com/medications/omeprazoledelayedreleasedr-10mg-capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "115",
+      "name": "Sertraline",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/sertraline-25mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "117",
+      "name": "Escitalopram Oxalate",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/EscitalopramOxalate-5mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "121",
+      "name": "Pantoprazole Sodium",
+      "strength": "40mg",
+      "form": "Box of 30 Packets",
+      "url": "https://www.costplusdrugs.com/medications/pantoprazole-sodium-40mg-packet-protonix/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "125",
+      "name": "Bupropion XL",
+      "strength": "150mg",
+      "form": "Extended Release Tablet",
+      "url": "https://www.costplusdrugs.com/medications/bupropionxl-150mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "133",
+      "name": "Fluoxetine",
+      "strength": "60mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/fluoxetine-60mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "137",
+      "name": "Trazodone",
+      "strength": "50mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/trazodone-50mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "140",
+      "name": "Montelukast",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/montelukast-10mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "144",
+      "name": "Amoxicillin (Trihydrate)",
+      "strength": "500mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/Amoxicillin-500mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "148",
+      "name": "Fluticasone Propionate",
+      "strength": "0.05%",
+      "form": "Cream",
+      "url": "https://www.costplusdrugs.com/medications/fluticasonepropionate-0_05-cream/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "151",
+      "name": "Tamsulosin",
+      "strength": "0.4mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/tamsulosin-0_4mg-capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "154",
+      "name": "Simvastatin",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/simvastatin-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "158",
+      "name": "Furosemide",
+      "strength": "20mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/furosemide-20mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "162",
+      "name": "Meloxicam",
+      "strength": "15mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/meloxicam-15mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "166",
+      "name": "Duloxetine Delayed Release (DR)",
+      "strength": "20mg",
+      "form": "Delayed Release Capsule",
+      "url": "https://www.costplusdrugs.com/medications/duloxetinedelayedreleasedr-20mg-capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "170",
+      "name": "Prednisone",
+      "strength": "1mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/prednisone-1mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "173",
+      "name": "Carvedilol",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/carvedilol-25mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "176",
+      "name": "Famotidine",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/famotidine-10mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "180",
+      "name": "Ibuprofen",
+      "strength": "200mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/ibuprofen-200mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "182",
+      "name": "Buspirone HCl",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/BuspironeHCL-5mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "186",
+      "name": "Venlafaxine",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/venlafaxine-25mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "190",
+      "name": "Potassium Chloride",
+      "strength": "20mEq",
+      "form": "Packet",
+      "url": "https://www.costplusdrugs.com/medications/potassiumchloride-20meq-packet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "194",
+      "name": "Hydroxyzine HCl",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/HydroxyzineHCl-10mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "198",
+      "name": "Allopurinol",
+      "strength": "100mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/allopurinol-100mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "201",
+      "name": "Clopidogrel",
+      "strength": "75mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/clopidogrel-75mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "204",
+      "name": "Ergocalciferol",
+      "strength": "1.25mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/Ergocalciferol-1_25mg-Capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "208",
+      "name": "Cetirizine HCl",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/Cetirizine-10mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "211",
+      "name": "Ondansetron",
+      "strength": "4mg",
+      "form": "ODT Tablet",
+      "url": "https://www.costplusdrugs.com/medications/ondansetron-4mg-orallydisintegratingtablet-odt/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "215",
+      "name": "Cyclobenzaprine",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/cyclobenzaprine-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "219",
+      "name": "Spironolactone",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/spironolactone-25mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "222",
+      "name": "Estradiol",
+      "strength": "1.25 mg/1.25gm",
+      "form": "Box of 30 Packets",
+      "url": "https://www.costplusdrugs.com/medications/estradiol-1_25-mg_1_25gm-gel-37_5/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "225",
+      "name": "Aspirin",
+      "strength": "81mg",
+      "form": "Tablet Chewable",
+      "url": "https://www.costplusdrugs.com/medications/aspirin-81mg-tablet-chewable-aspirin/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "229",
+      "name": "Glipizide",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/glipizide-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "232",
+      "name": "Lamotrigine",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/lamotrigine-25mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "236",
+      "name": "Citalopram Hydrobromide",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/CitalopramHydrobromide-10mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "238",
+      "name": "Azithromycin",
+      "strength": "250mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/azithromycin-250mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "241",
+      "name": "Pravastatin",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/pravastatin-10mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "244",
+      "name": "Valsartan",
+      "strength": "40mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/valsartan-40mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "246",
+      "name": "Ezetimibe",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/ezetimibe-10mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "250",
+      "name": "Diclofenac Sodium",
+      "strength": "1%",
+      "form": "Gel",
+      "url": "https://www.costplusdrugs.com/medications/diclofenacsodium-1-gel100g/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "253",
+      "name": "Norethindrone & Ethinyl Estradiol",
+      "strength": "1mg-35mcg",
+      "form": "Pack of Tablets",
+      "url": "https://www.costplusdrugs.com/medications/norethindroneacetateethinylestradiol-1mg_35mcg-blisterpack/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "256",
+      "name": "Propranolol HCl",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/PropranololHCL-10mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "259",
+      "name": "Latanoprost",
+      "strength": "0.005%",
+      "form": "Solution",
+      "url": "https://www.costplusdrugs.com/medications/latanoprost-0_01-solution-dropper-2_5-xalatan/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "262",
+      "name": "Atenolol",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/Atenolol-25mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "266",
+      "name": "Doxycycline Monohydrate",
+      "strength": "50mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/doxycycline-monohydrate-50mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "270",
+      "name": "Amoxicillin-Pot Clavulanate",
+      "strength": "875mg-125mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/amoxicillinclavulanate-875_125mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "272",
+      "name": "Lisinopril / HCTZ",
+      "strength": "20mg-25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/lisinoprilhctz-20mg_25mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "274",
+      "name": "Fluticasone-Salmeterol",
+      "strength": "250mcg-50mcg",
+      "form": "Aerosol Powder",
+      "url": "https://www.costplusdrugs.com/medications/Fluticasone-Salmeterol-250mcg50mcg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "277",
+      "name": "Celecoxib",
+      "strength": "50mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/celecoxib-50mg-capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "278",
+      "name": "Finasteride",
+      "strength": "1mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/finasteride-1mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "280",
+      "name": "Quetiapine Fumarate",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/QuetiapineFumarate-25mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "286",
+      "name": "Clonidine",
+      "strength": "0.2mg/24hr",
+      "form": "Box of 4 Patches",
+      "url": "https://www.costplusdrugs.com/medications/clonidine-0_2mg-patch/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "288",
+      "name": "Aripiprazole",
+      "strength": "2mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/aripiprazole-2mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "292",
+      "name": "Cephalexin",
+      "strength": "250mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/cephalexin-250mg-capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "296",
+      "name": "Alendronate Sodium",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/alendronate-10mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "303",
+      "name": "Topiramate",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/topiramate-25mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "306",
+      "name": "Tizanidine HCl",
+      "strength": "2mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/tizanidine-2mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "312",
+      "name": "Dapagliflozin Propanediol",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/dapagliflozin-propanediol-5mg-tablet-farxiga/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "315",
+      "name": "Losartan / HCTZ",
+      "strength": "100mg-25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/losartanhctz-100mg_25mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "319",
+      "name": "Olmesartan Medoxomil",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/olmesartanmedoxomil-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "323",
+      "name": "Amitriptyline",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/amitriptyline-10mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "327",
+      "name": "Folic Acid",
+      "strength": "1mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/FolicAcid-1mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "330",
+      "name": "Rivaroxaban",
+      "strength": "2.5 mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/rivaroxaban-2_5-mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "335",
+      "name": "Fenofibrate",
+      "strength": "48mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/fenofibrate-48mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "343",
+      "name": "Triamcinolone Acetonide",
+      "strength": "0.10%",
+      "form": "Tube of Paste",
+      "url": "https://www.costplusdrugs.com/medications/triamcinoloneacetonide-0_1-paste5g/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "347",
+      "name": "Paroxetine",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/paroxetine-10mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "351",
+      "name": "Loratadine",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/Loratadine-10mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "355",
+      "name": "Warfarin",
+      "strength": "1mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/warfarin-1mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "358",
+      "name": "Valacyclovir",
+      "strength": "500mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/valacyclovir-500mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "363",
+      "name": "Budesonide-Formoterol Fumarate",
+      "strength": "80-4.5mcg/Act",
+      "form": "Aerosol Inhaler",
+      "url": "https://www.costplusdrugs.com/medications/budesonide-formoterol-fumarate-80-4_5mcg-act-aerosol-inhaler-10_2-symbicort/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "369",
+      "name": "Norgestimate & Ethinyl Estradiol",
+      "strength": "0.18 / 25-0.215 / 25-0.25 / 25 mg / mcg",
+      "form": "Blister Pack of 28 Tablets",
+      "url": "https://www.costplusdrugs.com/medications/NorgestimateEthinylEstradiol-0_18-25_0_215-25_0_25-25mg-mcg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "375",
+      "name": "Methocarbamol",
+      "strength": "500mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/Methocarbamol-500mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "376",
+      "name": "Diltiazem HCl",
+      "strength": "30mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/diltiazem-hcl-30mg-tablet-cardizem/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "377",
+      "name": "Baclofen",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/baclofen-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "378",
+      "name": "Naproxen",
+      "strength": "250mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/naproxen-250mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "379",
+      "name": "Sumatriptan",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/SumatriptanSuccinate-25mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "381",
+      "name": "Prednisolone",
+      "strength": "15mg/5ml",
+      "form": "mL",
+      "url": "https://www.costplusdrugs.com/medications/prednisolone-15mg_5ml-ml/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "385",
+      "name": "Esomeprazole Magnesium",
+      "strength": "20mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/esomeprazole-20mg-capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "388",
+      "name": "Mirtazapine",
+      "strength": "15mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/mirtazapine-15mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "389",
+      "name": "Levetiracetam",
+      "strength": "250mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/levetiracetam-250mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "390",
+      "name": "Norethindrone",
+      "strength": "0.35mg",
+      "form": "Blister Pack of 28 Tablets",
+      "url": "https://www.costplusdrugs.com/medications/Norethindrone-0_35mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "391",
+      "name": "Tadalafil",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/tadalafil-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "392",
+      "name": "Nifedipine",
+      "strength": "20mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/nifedipine-20mg-capsule-adalat/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "393",
+      "name": "Progesterone",
+      "strength": "100mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/progesterone-100mg-capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "394",
+      "name": "Hydralazine",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/hydralazine-10mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "395",
+      "name": "Adalimumab-aacf",
+      "strength": "40mg/0.8ml",
+      "form": "Auto-injector Kit 2 Pens",
+      "url": "https://www.costplusdrugs.com/medications/adalimumab-aacf-40mg_0_8ml-auto-injector-kit-2/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "396",
+      "name": "Azelastine HCl",
+      "strength": "0.10%",
+      "form": "Nasal Spray",
+      "url": "https://www.costplusdrugs.com/medications/Azelastine-HCl-0_001-Solution/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "397",
+      "name": "Sitagliptin",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/sitagliptin-25mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "398",
+      "name": "Glimepiride",
+      "strength": "1mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/glimepiride-1mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "399",
+      "name": "Chlorthalidone",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/Chlorthalidone-25mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "400",
+      "name": "Oxybutynin Extended Release (ER)",
+      "strength": "5mg",
+      "form": "Extended Release Tablet",
+      "url": "https://www.costplusdrugs.com/medications/oxybutyninextendedreleaseer-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "401",
+      "name": "Pioglitazone",
+      "strength": "15mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/pioglitazone-15mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "402",
+      "name": "Ketoconazole",
+      "strength": "2%",
+      "form": "Cream",
+      "url": "https://www.costplusdrugs.com/medications/Ketoconazole-0_02-Cream/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "403",
+      "name": "Irbesartan",
+      "strength": "75mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/irbesartan-75mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "404",
+      "name": "Hydroxychloroquine Sulfate",
+      "strength": "200mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/hydroxychloroquine-sulfate-200mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "405",
+      "name": "Sulfamethoxazole-Trimethoprim",
+      "strength": "200-40mg/5ml",
+      "form": "mL",
+      "url": "https://www.costplusdrugs.com/medications/sulfamethoxazole-trimethoprim-200-40mg_5ml-ml/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "406",
+      "name": "Benzonatate",
+      "strength": "100mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/Benzonatate-100mg-Capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "407",
+      "name": "Nitrofurantoin",
+      "strength": "25mg/5mL",
+      "form": "Bottle of Suspension",
+      "url": "https://www.costplusdrugs.com/medications/nitrofurantoin-25mg-5ml-bottle-of-suspension-230-furadantin/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "408",
+      "name": "Isosorbide Mononitrate",
+      "strength": "20mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/isosorbide-mononitrate-20mg-tablet-monoket/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "409",
+      "name": "Methylprednisolone",
+      "strength": "4mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/methylprednisolone-4mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "410",
+      "name": "Triamterene-HCTZ",
+      "strength": "75mg-50mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/triamterene-hctz-75mg-50mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "411",
+      "name": "Levocetirizine Dihydrochloride",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/LevocetirizineDihydrochloride-5mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "412",
+      "name": "Clindamycin",
+      "strength": "75mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/clindamycin-hcl-75mg-capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "413",
+      "name": "Atomoxetine HCl",
+      "strength": "10mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/atomoxetinehcl-10mg-capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "414",
+      "name": "Methotrexate",
+      "strength": "2.5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/methotrexate-2_5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "415",
+      "name": "Donepezil",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/donepezil-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "416",
+      "name": "Desvenlafaxine Succinate Extended Release (ER)",
+      "strength": "50mg",
+      "form": "Extended Release Tablet",
+      "url": "https://www.costplusdrugs.com/medications/desvenlafaxinesuccinateextendedreleaseer-50mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "417",
+      "name": "Ropinirole",
+      "strength": "1mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/ropinirole-1mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "418",
+      "name": "Clobetasol Propionate",
+      "strength": "0.05%",
+      "form": "Gel",
+      "url": "https://www.costplusdrugs.com/medications/clobetasol-propionate-0_0005-gel/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "419",
+      "name": "Fluticasone Furoate-Vilanterol",
+      "strength": "100-25 mcg/act",
+      "form": "Aerosol Powder Breath Activated",
+      "url": "https://www.costplusdrugs.com/medications/fluticasone-furoate-vilanterol-100-25-mcg_act-aerosol-powder-breath-activated-60/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "420",
+      "name": "Ipratropium-Albuterol",
+      "strength": "0.5-2.5mg / 3mL",
+      "form": "Pack of 30 Solution Vials",
+      "url": "https://www.costplusdrugs.com/medications/ipratropium-albuterol-0_5-2_5mg_solution-30-x-3ml/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "421",
+      "name": "Ofloxacin",
+      "strength": "0.30%",
+      "form": "Bottle of Ophthalmic Solution or Eye Dropper",
+      "url": "https://www.costplusdrugs.com/medications/ofloxacin-0_3-solution-10ml/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "422",
+      "name": "Mupirocin",
+      "strength": "2%",
+      "form": "Ointment",
+      "url": "https://www.costplusdrugs.com/medications/mupirocin-2-ointment-22g/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "423",
+      "name": "Verapamil HCl",
+      "strength": "40mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/verapamilhcl-40mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "424",
+      "name": "Olanzapine",
+      "strength": "5mg",
+      "form": "ODT Tablet",
+      "url": "https://www.costplusdrugs.com/medications/olanzapine-5mg-odt/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "425",
+      "name": "Metronidazole",
+      "strength": "0.75%",
+      "form": "Vaginal Gel",
+      "url": "https://www.costplusdrugs.com/medications/Metronidazole-0_0075-Gel/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "426",
+      "name": "Prazosin HCl",
+      "strength": "1mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/PrazosinHCl-1mg-Capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "427",
+      "name": "Ciprofloxacin",
+      "strength": "250mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/ciprofloxacin-250mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "428",
+      "name": "Sildenafil Citrate",
+      "strength": "20mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/sildenafilcitrate-20mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "429",
+      "name": "Levonorgestrel & Ethinyl Estradiol",
+      "strength": "0.15mg-30mcg",
+      "form": "Blister Pack of 28 Tablets",
+      "url": "https://www.costplusdrugs.com/medications/Levonorgestrel-EthinylEstradiol-0_15mg-30mcg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "430",
+      "name": "Mesalamine",
+      "strength": "1000mg",
+      "form": "Suppository",
+      "url": "https://www.costplusdrugs.com/medications/mesalamine-1000mg-suppository/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "431",
+      "name": "Memantine",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/memantine-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "432",
+      "name": "Etonogestrel-Ethinyl Estradiol",
+      "strength": "0.12-0.015mg",
+      "form": "Ring",
+      "url": "https://www.costplusdrugs.com/medications/etonogestrel-ethinyl-estradiol-0_12-0_015mg-ring-1-eluryng/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "433",
+      "name": "Lithium Carbonate",
+      "strength": "300mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/lithium-carbonate-300mg-capsule-eskalith/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "434",
+      "name": "Nortriptyline HCl",
+      "strength": "10mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/nortriptylinehcl-10mg-capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "435",
+      "name": "Timolol Maleate",
+      "strength": "0.50%",
+      "form": "Bottle of Ophthalmic Solution or Eye Dropper",
+      "url": "https://www.costplusdrugs.com/medications/timolol-maleate-0_5-solution-10-timoptic/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "436",
+      "name": "Cefdinir",
+      "strength": "300mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/Cefdinir-300mg-Capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "437",
+      "name": "Meclizine HCl",
+      "strength": "12.5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/meclizinehcl-12_5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "438",
+      "name": "Cyclosporine",
+      "strength": "0.05%",
+      "form": "Box of 30 Vials (Emulsion)",
+      "url": "https://www.costplusdrugs.com/medications/cyclosporine-0_05-box-of-30-vials-emulsion/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "439",
+      "name": "Fluconazole",
+      "strength": "50mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/fluconazole-50mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "440",
+      "name": "Tretinoin",
+      "strength": "0.05%",
+      "form": "Tube of Cream",
+      "url": "https://www.costplusdrugs.com/medications/tretinoin-0_05-cream-20g/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "441",
+      "name": "Lovastatin",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/lovastatin-10mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "442",
+      "name": "Drospirenone Ethinyl Estradiol",
+      "strength": "3mg-0.03mg",
+      "form": "Blister Pack of 28 Tablets",
+      "url": "https://www.costplusdrugs.com/medications/drospirenoneethinylestradiol-3-0_03mg-blisterpack/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "443",
+      "name": "Tiotropium Bromide Inhalation Powder",
+      "strength": "18mcg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/tiotropium-bromide-inhalation-powder-18mcg-30-capsules/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "444",
+      "name": "Benazepril HCl",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/benazepril-hcl-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "445",
+      "name": "Brimonidine Tartrate",
+      "strength": "0.20%",
+      "form": "Ophthalmic Solution",
+      "url": "https://www.costplusdrugs.com/medications/brimonidinetartrate-0_002-solution/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "446",
+      "name": "Sacubitril-Valsartan",
+      "strength": "24-26mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/sacubitril-valsartan-24-26mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "447",
+      "name": "Valproate Sodium",
+      "strength": "250mg/5ml",
+      "form": "Solution",
+      "url": "https://www.costplusdrugs.com/medications/valproatesodium-250mg_5ml-milliliters/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "448",
+      "name": "Nebivolol HCl",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/nebivololhcl-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "449",
+      "name": "Acyclovir",
+      "strength": "400mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/Acyclovir-400mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "450",
+      "name": "Doxazosin Mesylate",
+      "strength": "2mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/doxazosinmesylate-2mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "451",
+      "name": "Amlodipine Besylate-Benazepril HCl",
+      "strength": "5mg-20mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/amlodipinebesylate-benazeprilhcl-5mg-20mg-capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "452",
+      "name": "Emtricitabine-Tenofovir DF",
+      "strength": "200mg - 300mg",
+      "form": "Bottle of Tablets",
+      "url": "https://www.costplusdrugs.com/medications/emtricitabine-tenofovir-df-200mg-300mg-bottle-of-tablets/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "453",
+      "name": "Budesonide",
+      "strength": "0.25mg / 2mL",
+      "form": "Box of 30 Vials",
+      "url": "https://www.costplusdrugs.com/medications/budesonide-0_25mg_2ml-suspension/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "454",
+      "name": "Tacrolimus",
+      "strength": "1mg",
+      "form": "Capsule",
+      "url": "https://www.costplusdrugs.com/medications/tacrolimus-1mg-capsule/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "455",
+      "name": "Enalapril Maleate",
+      "strength": "5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/enalaprilmaleate-5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "456",
+      "name": "Anastrozole",
+      "strength": "1mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/Anastrozole-1mg-Tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "457",
+      "name": "Tazarotene",
+      "strength": "0.1%",
+      "form": "Tube of Cream",
+      "url": "https://www.costplusdrugs.com/medications/tazarotene-0_1-cream-60-tazorac/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "458",
+      "name": "Imiquimod",
+      "strength": "5%",
+      "form": "Cream",
+      "url": "https://www.costplusdrugs.com/medications/imiquimod-5-cream/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "459",
+      "name": "Fluorouracil",
+      "strength": "5%",
+      "form": "Tube of Cream",
+      "url": "https://www.costplusdrugs.com/medications/fluorouracil-5-tube-of-cream-40-efudex/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "460",
+      "name": "Clobetasol Propionate",
+      "strength": "0.05%",
+      "form": "Cream",
+      "url": "https://www.costplusdrugs.com/medications/ClobetasolPropionate-0_0005-Cream/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "461",
+      "name": "Dapagliflozin-Metformin HCl ER",
+      "strength": "10-500mg",
+      "form": "Extended Release Tablet",
+      "url": "https://www.costplusdrugs.com/medications/dapagliflozin-metformin-hcl-er-10-500mg-extended-release-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "462",
+      "name": "Dapagliflozin-Metformin HCl ER",
+      "strength": "5-500mg",
+      "form": "Extended Release Tablet",
+      "url": "https://www.costplusdrugs.com/medications/dapagliflozin-metformin-hcl-er-5-500mg-extended-release-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "463",
+      "name": "Glipizide-Metformin HCl",
+      "strength": "2.5-500mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/glipizide-metformin-hcl-2_5-500mg-tablet-metaglip/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "468",
+      "name": "Losartan / HCTZ",
+      "strength": "100mg-12.5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/losartanhctz-100mg_12_5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "470",
+      "name": "Losartan",
+      "strength": "50mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/losartan-50mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "471",
+      "name": "Losartan / HCTZ",
+      "strength": "50mg-12.5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/losartanhctz-50mg_12_5mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "472",
+      "name": "Amlodipine-Atorvastatin",
+      "strength": "10-40mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/amlodipine-atorvastatin-10-40mg-tablet-caduet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "473",
+      "name": "Amlodipine-Atorvastatin",
+      "strength": "2.5-40mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/amlodipine-atorvastatin-2_5-40mg-tablet-caduet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "474",
+      "name": "Amlodipine-Atorvastatin",
+      "strength": "5-40mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/amlodipine-atorvastatin-5-40mg-tablet-caduet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "475",
+      "name": "Amlodipine-Atorvastatin",
+      "strength": "10-20mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/amlodipine-atorvastatin-10-20mg-tablet-caduet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "476",
+      "name": "Amlodipine-Atorvastatin",
+      "strength": "2.5-20mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/amlodipine-atorvastatin-2_5-20mg-tablet-caduet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "477",
+      "name": "Amlodipine-Atorvastatin",
+      "strength": "5-20mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/amlodipine-atorvastatin-5-20mg-tablet-caduet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "479",
+      "name": "Aspirin Low Dose",
+      "strength": "81mg",
+      "form": "Tablet Delayed Release",
+      "url": "https://www.costplusdrugs.com/medications/aspirin-low-dose-81mg-tablet-delayed-release-aspirin-low-dose/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "480",
+      "name": "Rasagiline Mesylate",
+      "strength": "1mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/rasagiline-mesylate-1mg-tablet-azilect/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "481",
+      "name": "Sildenafil Citrate",
+      "strength": "50mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/sildenafilcitrate-50mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "482",
+      "name": "Metoprolol Extended Release (ER)",
+      "strength": "25mg",
+      "form": "Extended Release Tablet",
+      "url": "https://www.costplusdrugs.com/medications/metoprololextendedreleaseer-25mg-tablet/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": "483",
+      "name": "Metoprolol-Hydrochlorothiazide",
+      "strength": "100-25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/metoprolol-hydrochlorothiazide-100-25mg-tablet-lopressor-hct/",
+      "source": "supabase_pricing_listings"
+    },
+    {
+      "listing_id": null,
+      "name": "Amlodipine",
+      "strength": "2.5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/amlodipine-2_5mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Atorvastatin",
+      "strength": "20mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/atorvastatin-20mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Atorvastatin",
+      "strength": "80mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/atorvastatin-80mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Furosemide",
+      "strength": "10mg/mL",
+      "form": "Bottle of Solution",
+      "url": "https://www.costplusdrugs.com/medications/furosemide-10mg-ml-bottle-of-solution-60-lasix/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Furosemide",
+      "strength": "40mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/furosemide-40mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Furosemide",
+      "strength": "80mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/furosemide-80mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Levothyroxine",
+      "strength": "100mcg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/levothyroxine-100mcg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Levothyroxine",
+      "strength": "112mcg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/levothyroxine-112mcg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Levothyroxine",
+      "strength": "125mcg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/levothyroxine-125mcg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Levothyroxine",
+      "strength": "137mcg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/levothyroxine-137mcg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Levothyroxine",
+      "strength": "150mcg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/levothyroxine-150mcg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Levothyroxine",
+      "strength": "175mcg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/levothyroxine-175mcg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Levothyroxine",
+      "strength": "200mcg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/levothyroxine-200mcg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Levothyroxine",
+      "strength": "300mcg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/levothyroxine-300mcg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Levothyroxine",
+      "strength": "50mcg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/levothyroxine-50mcg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Levothyroxine",
+      "strength": "75mcg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/levothyroxine-75mcg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Levothyroxine",
+      "strength": "88mcg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/levothyroxine-88mcg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Lisinopril",
+      "strength": "10mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/lisinopril-10mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Lisinopril",
+      "strength": "2.5mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/lisinopril-2_5mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Lisinopril",
+      "strength": "30mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/lisinopril-30mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Lisinopril",
+      "strength": "40mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/lisinopril-40mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Metformin",
+      "strength": "1000mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/metformin-1000mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Metformin",
+      "strength": "850mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/metformin-850mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Metformin Extended Release (ER)",
+      "strength": "500mg",
+      "form": "Extended Release Tablet",
+      "url": "https://www.costplusdrugs.com/medications/metforminextendedreleaseer-500mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Metformin Extended Release (ER)",
+      "strength": "750mg",
+      "form": "Extended Release Tablet",
+      "url": "https://www.costplusdrugs.com/medications/metforminextendedreleaseer-750mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Nitroglycerin",
+      "strength": "0.1mg/HR",
+      "form": "Patch",
+      "url": "https://www.costplusdrugs.com/medications/nitroglycerin-0_1mg-hr-patch-minitran/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Nitroglycerin",
+      "strength": "0.2mg/HR",
+      "form": "Patch",
+      "url": "https://www.costplusdrugs.com/medications/nitroglycerin-0_2mg-hr-patch-minitran/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Nitroglycerin",
+      "strength": "0.4mg",
+      "form": "Patch",
+      "url": "https://www.costplusdrugs.com/medications/nitroglycerin-0_4mg-patch-minitran/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Nitroglycerin",
+      "strength": "0.4mg/Spray",
+      "form": "Solution Spray",
+      "url": "https://www.costplusdrugs.com/medications/nitroglycerin-0_4mg-spray-solution-spray-4_9-nitrolingual/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Nitroglycerin",
+      "strength": "0.6mg/HR",
+      "form": "Patch",
+      "url": "https://www.costplusdrugs.com/medications/nitroglycerin-0_6mg-hr-patch-minitran/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Sildenafil Citrate",
+      "strength": "100mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/sildenafilcitrate-100mg-tablet/",
+      "source": "costplus_public_catalog"
+    },
+    {
+      "listing_id": null,
+      "name": "Sildenafil Citrate",
+      "strength": "25mg",
+      "form": "Tablet",
+      "url": "https://www.costplusdrugs.com/medications/sildenafilcitrate-25mg-tablet/",
+      "source": "costplus_public_catalog"
+    }
+  ]
+}

@@ -1,18 +1,19 @@
 import {sharedApiUrl} from './shared-api.js';
+import {storageKey} from './demo.js';
 
 const apiUrl = import.meta.env.VITE_API_BASE_URL || sharedApiUrl || 'http://127.0.0.1:63815';
 const accessToken = import.meta.env.VITE_API_TOKEN || '';
-const householdStorageKey = 'housemed_household_key';
+const householdStorageKey = storageKey('housemed_household_key');
 let householdKey = localStorage.getItem(householdStorageKey);
 if (!householdKey) {
   householdKey = Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2,'0')).join('');
   localStorage.setItem(householdStorageKey, householdKey);
   // A draft from the previous shared development household is not in this browser's household.
-  sessionStorage.removeItem('housemed_mobile_draft_id');
+  sessionStorage.removeItem(storageKey('housemed_mobile_draft_id'));
 }
 // AgentCore keeps existing sessions on their original code version. Start a new
 // session for the batch-save conversation protocol, retaining drafts in the database.
-const sessionStorageKey = 'housemed_api_session_v4';
+const sessionStorageKey = storageKey('housemed_api_session_v4');
 const sessionId = sessionStorage.getItem(sessionStorageKey) || crypto.randomUUID();
 sessionStorage.setItem(sessionStorageKey, sessionId);
 sessionStorage.removeItem('housemed_api_session');

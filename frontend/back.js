@@ -11,7 +11,8 @@
 
   back.addEventListener('click', () => {
     const current = document.querySelector('.screen.active')?.id;
-    const destination = current === 'detail' ? 'deals' : current === 'deals' ? 'meds' : current === 'meds' ? 'choose' : 'house';
+    const destination = document.querySelector('.screen.active')?.dataset.backScreen
+      ?? (current === 'detail' ? 'deals' : current === 'deals' ? 'meds' : current === 'meds' ? 'choose' : 'house');
     screens.forEach(screen => screen.classList.toggle('active', screen.id === destination));
     // The picker includes each member's medicine count, so refresh it before showing it.
     if (destination === 'choose' && typeof renderChoices === 'function') renderChoices();
